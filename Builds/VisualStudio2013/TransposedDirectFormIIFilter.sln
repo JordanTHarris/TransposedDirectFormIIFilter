@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2013
+Project("{E6C0FCD3-AFB9-0687-D62C-E7A60A3AB5E1}") = "TransposedDirectFormIIFilter", "TransposedDirectFormIIFilter.vcxproj", "{BBCBD5BF-DB17-0691-B9D9-E683C67D38E5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BBCBD5BF-DB17-0691-B9D9-E683C67D38E5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BBCBD5BF-DB17-0691-B9D9-E683C67D38E5}.Debug|Win32.Build.0 = Debug|Win32
+		{BBCBD5BF-DB17-0691-B9D9-E683C67D38E5}.Release|Win32.ActiveCfg = Release|Win32
+		{BBCBD5BF-DB17-0691-B9D9-E683C67D38E5}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
