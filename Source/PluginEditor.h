@@ -17,11 +17,13 @@
   ==============================================================================
 */
 
-#ifndef __JUCE_HEADER_F1B68972952BE4__
-#define __JUCE_HEADER_F1B68972952BE4__
+#ifndef __JUCE_HEADER_710FC36CEDCE5789__
+#define __JUCE_HEADER_710FC36CEDCE5789__
 
 //[Headers]     -- You can add your own extra header files here --
 #include "JuceHeader.h"
+#include "../Custom/KnobLookAndFeel.h"
+#include "PluginProcessor.h"
 //[/Headers]
 
 
@@ -34,16 +36,18 @@
     Describe your class and how it works here!
                                                                     //[/Comments]
 */
-class PluginEditor  : public Component,
-                      public SliderListener
+class TransposedDirectFormIifilterAudioProcessorEditor  : public AudioProcessorEditor,
+                                                          public Timer,
+                                                          public SliderListener
 {
 public:
     //==============================================================================
-    PluginEditor ();
-    ~PluginEditor();
+    TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& p);
+    ~TransposedDirectFormIifilterAudioProcessorEditor();
 
     //==============================================================================
     //[UserMethods]     -- You can add your own custom methods in this section.
+	void timerCallback();
     //[/UserMethods]
 
     void paint (Graphics& g);
@@ -54,22 +58,24 @@ public:
 
 private:
     //[UserVariables]   -- You can add your own custom variables in this section.
+	TransposedDirectFormIifilterAudioProcessor& processor;
+	KnobLookAndFeel knobLookAndFeel;
     //[/UserVariables]
 
     //==============================================================================
     ScopedPointer<Slider> cutoffSlider;
-    ScopedPointer<Slider> peakSlider2;
     ScopedPointer<Slider> QSlider;
+    ScopedPointer<Slider> gainSlider;
     ScopedPointer<Label> label;
     ScopedPointer<Label> label2;
     ScopedPointer<Label> label3;
 
 
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransposedDirectFormIifilterAudioProcessorEditor)
 };
 
 //[EndFile] You can add extra defines here...
 //[/EndFile]
 
-#endif   // __JUCE_HEADER_F1B68972952BE4__
+#endif   // __JUCE_HEADER_710FC36CEDCE5789__

@@ -5,6 +5,12 @@
     <Filter Include="TransposedDirectFormIIFilter">
       <UniqueIdentifier>{A370730C-64DC-CEEB-D465-1D7FF0886CD3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TransposedDirectFormIIFilter\Custom">
+      <UniqueIdentifier>{FFB2AF83-8923-FF7C-2450-E4D4ED236A9C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TransposedDirectFormIIFilter\Resources">
+      <UniqueIdentifier>{FE71B8B1-E6B6-C9A7-C57E-81B351EFA9E1}</UniqueIdentifier>
+    </Filter>
     <Filter Include="TransposedDirectFormIIFilter\Source">
       <UniqueIdentifier>{08390E3B-FD3C-B313-984D-09A3C1497FAF}</UniqueIdentifier>
     </Filter>
@@ -313,6 +319,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Custom\KnobLookAndFeel.cpp">
+      <Filter>TransposedDirectFormIIFilter\Custom</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Resources\SilverKnobBin.cpp">
+      <Filter>TransposedDirectFormIIFilter\Resources</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp">
       <Filter>TransposedDirectFormIIFilter\Source</Filter>
     </ClCompile>
@@ -1545,6 +1557,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Custom\KnobLookAndFeel.h">
+      <Filter>TransposedDirectFormIIFilter\Custom</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Resources\SilverKnobBin.h">
+      <Filter>TransposedDirectFormIIFilter\Resources</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
       <Filter>TransposedDirectFormIIFilter\Source</Filter>
     </ClInclude>
@@ -2897,6 +2915,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Resources\SilverKnob60.png">
+      <Filter>TransposedDirectFormIIFilter\Resources</Filter>
+    </None>
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_basics\juce_module_info">
       <Filter>Juce Modules\juce_audio_basics</Filter>
     </None>

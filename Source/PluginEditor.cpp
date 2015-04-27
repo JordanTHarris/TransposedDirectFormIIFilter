@@ -27,7 +27,8 @@
 //[/MiscUserDefs]
 
 //==============================================================================
-PluginEditor::PluginEditor ()
+TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& p)
+    : AudioProcessorEditor(&p), processor{ p }
 {
     addAndMakeVisible (cutoffSlider = new Slider ("CutoffFreq"));
     cutoffSlider->setRange (0, 10, 0);
@@ -35,17 +36,17 @@ PluginEditor::PluginEditor ()
     cutoffSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     cutoffSlider->addListener (this);
 
-    addAndMakeVisible (peakSlider2 = new Slider ("PeakGain"));
-    peakSlider2->setRange (0, 10, 0);
-    peakSlider2->setSliderStyle (Slider::RotaryVerticalDrag);
-    peakSlider2->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
-    peakSlider2->addListener (this);
-
     addAndMakeVisible (QSlider = new Slider ("FilterQ"));
     QSlider->setRange (0, 10, 0);
     QSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     QSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     QSlider->addListener (this);
+
+    addAndMakeVisible (gainSlider = new Slider ("PeakGain"));
+    gainSlider->setRange (0, 10, 0);
+    gainSlider->setSliderStyle (Slider::RotaryVerticalDrag);
+    gainSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
+    gainSlider->addListener (this);
 
     addAndMakeVisible (label = new Label ("new label",
                                           TRANS("Cutoff (Hz)")));
@@ -79,17 +80,23 @@ PluginEditor::PluginEditor ()
 
 
     //[Constructor] You can add your own custom stuff here..
+
+	// Use custom knob image strip for each slider.
+	cutoffSlider->setLookAndFeel(&knobLookAndFeel);
+	QSlider->setLookAndFeel(&knobLookAndFeel);
+	gainSlider->setLookAndFeel(&knobLookAndFeel);
+
     //[/Constructor]
 }
 
-PluginEditor::~PluginEditor()
+TransposedDirectFormIifilterAudioProcessorEditor::~TransposedDirectFormIifilterAudioProcessorEditor()
 {
     //[Destructor_pre]. You can add your own custom destruction code here..
     //[/Destructor_pre]
 
     cutoffSlider = nullptr;
-    peakSlider2 = nullptr;
     QSlider = nullptr;
+    gainSlider = nullptr;
     label = nullptr;
     label2 = nullptr;
     label3 = nullptr;
@@ -100,7 +107,7 @@ PluginEditor::~PluginEditor()
 }
 
 //==============================================================================
-void PluginEditor::paint (Graphics& g)
+void TransposedDirectFormIifilterAudioProcessorEditor::paint (Graphics& g)
 {
     //[UserPrePaint] Add your own custom painting code here..
     //[/UserPrePaint]
@@ -111,14 +118,14 @@ void PluginEditor::paint (Graphics& g)
     //[/UserPaint]
 }
 
-void PluginEditor::resized()
+void TransposedDirectFormIifilterAudioProcessorEditor::resized()
 {
     //[UserPreResize] Add your own custom resize code here..
     //[/UserPreResize]
 
     cutoffSlider->setBounds (20, 72, 60, 60);
-    peakSlider2->setBounds (220, 72, 60, 60);
     QSlider->setBounds (120, 72, 60, 60);
+    gainSlider->setBounds (220, 72, 60, 60);
     label->setBounds (15, 40, 65, 24);
     label2->setBounds (115, 40, 65, 24);
     label3->setBounds (215, 40, 65, 24);
@@ -126,7 +133,7 @@ void PluginEditor::resized()
     //[/UserResized]
 }
 
-void PluginEditor::sliderValueChanged (Slider* sliderThatWasMoved)
+void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slider* sliderThatWasMoved)
 {
     //[UsersliderValueChanged_Pre]
     //[/UsersliderValueChanged_Pre]
@@ -136,15 +143,15 @@ void PluginEditor::sliderValueChanged (Slider* sliderThatWasMoved)
         //[UserSliderCode_cutoffSlider] -- add your slider handling code here..
         //[/UserSliderCode_cutoffSlider]
     }
-    else if (sliderThatWasMoved == peakSlider2)
-    {
-        //[UserSliderCode_peakSlider2] -- add your slider handling code here..
-        //[/UserSliderCode_peakSlider2]
-    }
     else if (sliderThatWasMoved == QSlider)
     {
         //[UserSliderCode_QSlider] -- add your slider handling code here..
         //[/UserSliderCode_QSlider]
+    }
+    else if (sliderThatWasMoved == gainSlider)
+    {
+        //[UserSliderCode_gainSlider] -- add your slider handling code here..
+        //[/UserSliderCode_gainSlider]
     }
 
     //[UsersliderValueChanged_Post]
@@ -154,6 +161,10 @@ void PluginEditor::sliderValueChanged (Slider* sliderThatWasMoved)
 
 
 //[MiscUserCode] You can add your own definitions of your custom methods or any other code here...
+void TransposedDirectFormIifilterAudioProcessorEditor::timerCallback()
+{
+
+}
 //[/MiscUserCode]
 
 
@@ -166,8 +177,10 @@ void PluginEditor::sliderValueChanged (Slider* sliderThatWasMoved)
 
 BEGIN_JUCER_METADATA
 
-<JUCER_COMPONENT documentType="Component" className="PluginEditor" componentName=""
-                 parentClasses="public Component" constructorParams="" variableInitialisers=""
+<JUCER_COMPONENT documentType="Component" className="TransposedDirectFormIifilterAudioProcessorEditor"
+                 componentName="" parentClasses="public AudioProcessorEditor, public Timer"
+                 constructorParams="TransposedDirectFormIifilterAudioProcessor&amp; p"
+                 variableInitialisers="AudioProcessorEditor(&amp;p), processor{ p }"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="1" initialWidth="300" initialHeight="200">
   <BACKGROUND backgroundColour="ffffffff"/>
@@ -175,14 +188,14 @@ BEGIN_JUCER_METADATA
           virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="0"
           max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
-  <SLIDER name="PeakGain" id="577486c89cc0202" memberName="peakSlider2"
-          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="0"
-          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
-          textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
-  <SLIDER name="FilterQ" id="5f7024e3655032c8" memberName="QSlider" virtualName=""
+  <SLIDER name="FilterQ" id="577486c89cc0202" memberName="QSlider" virtualName=""
           explicitFocusOrder="0" pos="120 72 60 60" min="0" max="10" int="0"
           style="RotaryVerticalDrag" textBoxPos="NoTextBox" textBoxEditable="1"
           textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
+  <SLIDER name="PeakGain" id="5f7024e3655032c8" memberName="gainSlider"
+          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="0"
+          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <LABEL name="new label" id="33577796e39c63e8" memberName="label" virtualName=""
          explicitFocusOrder="0" pos="15 40 65 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Cutoff (Hz)" editableSingleClick="0"

@@ -13,6 +13,19 @@
               pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="3.1.0"
               companyName="Jordan Harris">
   <MAINGROUP id="TbQSG7" name="TransposedDirectFormIIFilter">
+    <GROUP id="{37802F40-7C17-ABB9-99F0-B21F65E4630D}" name="Custom">
+      <FILE id="lgAe1s" name="KnobLookAndFeel.cpp" compile="1" resource="0"
+            file="Custom/KnobLookAndFeel.cpp"/>
+      <FILE id="irsOIH" name="KnobLookAndFeel.h" compile="0" resource="0"
+            file="Custom/KnobLookAndFeel.h"/>
+    </GROUP>
+    <GROUP id="{EAF55011-AAEF-87C1-729D-154094BAA536}" name="Resources">
+      <FILE id="HtkskC" name="SilverKnob60.png" compile="0" resource="0"
+            file="Resources/SilverKnob60.png"/>
+      <FILE id="ek17LT" name="SilverKnobBin.cpp" compile="1" resource="0"
+            file="Resources/SilverKnobBin.cpp"/>
+      <FILE id="BpKrpJ" name="SilverKnobBin.h" compile="0" resource="0" file="Resources/SilverKnobBin.h"/>
+    </GROUP>
     <GROUP id="{7ADD7939-2BEE-8D53-45F3-64B122C91A8F}" name="Source">
       <FILE id="dA9Z45" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
@@ -24,7 +37,8 @@
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <VS2013 targetFolder="Builds/VisualStudio2013">
+    <VS2013 targetFolder="Builds/VisualStudio2013" vstFolder="C:\Programming\VST3_SDK"
+            vst3Folder="C:\Programming\VST3_SDK">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" winWarningLevel="4" generateManifest="1" winArchitecture="32-bit"
                        isDebug="1" optimisation="1" targetName="TransposedDirectFormIIFilter"/>
