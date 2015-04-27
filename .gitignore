@@ -27,6 +27,15 @@
 *.out
 *.app
 
+
+# Visual Studio Debug files
+*.log
+*.tlog
+*.idb
+*.pdb
+*.res
+*.vst3
+
 # =========================
 # Operating System Files
 # =========================
