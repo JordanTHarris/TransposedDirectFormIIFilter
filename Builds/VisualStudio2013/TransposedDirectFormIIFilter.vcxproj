@@ -139,6 +139,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Custom\TransDirectFormIIFilter.cpp"/>
     <ClCompile Include="..\..\Custom\KnobLookAndFeel.cpp"/>
     <ClCompile Include="..\..\Resources\SilverKnobBin.cpp"/>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp"/>
@@ -1247,6 +1248,7 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST3\juce_VST3_Wrapper.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Custom\TransDirectFormIIFilter.h"/>
     <ClInclude Include="..\..\Custom\KnobLookAndFeel.h"/>
     <ClInclude Include="..\..\Resources\SilverKnobBin.h"/>
     <ClInclude Include="..\..\Source\PluginProcessor.h"/>

@@ -14,6 +14,10 @@
               companyName="Jordan Harris">
   <MAINGROUP id="TbQSG7" name="TransposedDirectFormIIFilter">
     <GROUP id="{37802F40-7C17-ABB9-99F0-B21F65E4630D}" name="Custom">
+      <FILE id="mWf3Fq" name="TransDirectFormIIFilter.cpp" compile="1" resource="0"
+            file="Custom/TransDirectFormIIFilter.cpp"/>
+      <FILE id="cR809p" name="TransDirectFormIIFilter.h" compile="0" resource="0"
+            file="Custom/TransDirectFormIIFilter.h"/>
       <FILE id="lgAe1s" name="KnobLookAndFeel.cpp" compile="1" resource="0"
             file="Custom/KnobLookAndFeel.cpp"/>
       <FILE id="irsOIH" name="KnobLookAndFeel.h" compile="0" resource="0"

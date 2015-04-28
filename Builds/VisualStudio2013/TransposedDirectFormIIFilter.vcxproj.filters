@@ -319,6 +319,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Custom\TransDirectFormIIFilter.cpp">
+      <Filter>TransposedDirectFormIIFilter\Custom</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Custom\KnobLookAndFeel.cpp">
       <Filter>TransposedDirectFormIIFilter\Custom</Filter>
     </ClCompile>
@@ -1557,6 +1560,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Custom\TransDirectFormIIFilter.h">
+      <Filter>TransposedDirectFormIIFilter\Custom</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Custom\KnobLookAndFeel.h">
       <Filter>TransposedDirectFormIIFilter\Custom</Filter>
     </ClInclude>
