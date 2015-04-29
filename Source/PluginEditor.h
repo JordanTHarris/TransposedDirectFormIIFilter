@@ -60,6 +60,11 @@ private:
     //[UserVariables]   -- You can add your own custom variables in this section.
 	TransposedDirectFormIifilterAudioProcessor& processor;
 	KnobLookAndFeel knobLookAndFeel;
+
+	ScopedPointer<ResizableCornerComponent> win_resizer;	// Corner resizer
+	ComponentBoundsConstrainer win_resizeLimits;			// Resizing limits
+
+
     //[/UserVariables]
 
     //==============================================================================
@@ -69,6 +74,9 @@ private:
     ScopedPointer<Label> label;
     ScopedPointer<Label> label2;
     ScopedPointer<Label> label3;
+    ScopedPointer<Label> cutoffVal;
+    ScopedPointer<Label> QVal;
+    ScopedPointer<Label> gainVal;
 
 
     //==============================================================================

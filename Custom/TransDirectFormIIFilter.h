@@ -43,6 +43,7 @@ public:
 	void setFilter(int type, double Fc, double Q, double peakGaindB);
 	float process(float in);
 
+
 protected:
 	void calcFilter(void);
 

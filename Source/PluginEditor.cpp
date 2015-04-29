@@ -31,19 +31,19 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     : AudioProcessorEditor(&p), processor{ p }
 {
     addAndMakeVisible (cutoffSlider = new Slider ("CutoffFreq"));
-    cutoffSlider->setRange (0, 10, 0);
+    cutoffSlider->setRange (0, 1, 0);
     cutoffSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     cutoffSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     cutoffSlider->addListener (this);
 
     addAndMakeVisible (QSlider = new Slider ("FilterQ"));
-    QSlider->setRange (0, 10, 0);
+    QSlider->setRange (0, 1, 0);
     QSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     QSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     QSlider->addListener (this);
 
     addAndMakeVisible (gainSlider = new Slider ("PeakGain"));
-    gainSlider->setRange (0, 10, 0);
+    gainSlider->setRange (0, 1, 0);
     gainSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     gainSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     gainSlider->addListener (this);
@@ -72,8 +72,33 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     label3->setColour (TextEditor::textColourId, Colours::black);
     label3->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
+    addAndMakeVisible (cutoffVal = new Label ("cutoff value",
+                                              TRANS("label text")));
+    cutoffVal->setFont (Font (15.00f, Font::plain));
+    cutoffVal->setJustificationType (Justification::centred);
+    cutoffVal->setEditable (false, false, false);
+    cutoffVal->setColour (TextEditor::textColourId, Colours::black);
+    cutoffVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
+    addAndMakeVisible (QVal = new Label ("Q value",
+                                         TRANS("label text")));
+    QVal->setFont (Font (15.00f, Font::plain));
+    QVal->setJustificationType (Justification::centred);
+    QVal->setEditable (false, false, false);
+    QVal->setColour (TextEditor::textColourId, Colours::black);
+    QVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
+    addAndMakeVisible (gainVal = new Label ("gain value",
+                                            TRANS("label text")));
+    gainVal->setFont (Font (15.00f, Font::plain));
+    gainVal->setJustificationType (Justification::centred);
+    gainVal->setEditable (false, false, false);
+    gainVal->setColour (TextEditor::textColourId, Colours::black);
+    gainVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+
 
     //[UserPreSize]
+
     //[/UserPreSize]
 
     setSize (300, 200);
@@ -81,10 +106,18 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
 
     //[Constructor] You can add your own custom stuff here..
 
+	// Add the window resizer component for the bottom right of the UI
+	addAndMakeVisible(win_resizer = new ResizableCornerComponent(this, &win_resizeLimits));
+	win_resizeLimits.setSizeLimits(processor.lastUIWidth_m, processor.lastUIHeight_m, 500, 300);
+
+	setSize(processor.lastUIWidth_m, processor.lastUIHeight_m);
+
 	// Use custom knob image strip for each slider.
 	cutoffSlider->setLookAndFeel(&knobLookAndFeel);
 	QSlider->setLookAndFeel(&knobLookAndFeel);
 	gainSlider->setLookAndFeel(&knobLookAndFeel);
+
+	startTimerHz(512);
 
     //[/Constructor]
 }
@@ -100,6 +133,9 @@ TransposedDirectFormIifilterAudioProcessorEditor::~TransposedDirectFormIifilterA
     label = nullptr;
     label2 = nullptr;
     label3 = nullptr;
+    cutoffVal = nullptr;
+    QVal = nullptr;
+    gainVal = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -129,7 +165,12 @@ void TransposedDirectFormIifilterAudioProcessorEditor::resized()
     label->setBounds (15, 40, 65, 24);
     label2->setBounds (115, 40, 65, 24);
     label3->setBounds (215, 40, 65, 24);
+    cutoffVal->setBounds (16, 144, 72, 24);
+    QVal->setBounds (120, 144, 72, 24);
+    gainVal->setBounds (216, 144, 72, 24);
     //[UserResized] Add your own custom resize handling here..
+	processor.lastUIWidth_m = getWidth();
+	processor.lastUIHeight_m = getWidth();
     //[/UserResized]
 }
 
@@ -141,16 +182,22 @@ void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slide
     if (sliderThatWasMoved == cutoffSlider)
     {
         //[UserSliderCode_cutoffSlider] -- add your slider handling code here..
+		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kCutoffFreqParam,
+											float(cutoffSlider->getValue()));
         //[/UserSliderCode_cutoffSlider]
     }
     else if (sliderThatWasMoved == QSlider)
     {
         //[UserSliderCode_QSlider] -- add your slider handling code here..
+		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterQParam,
+			float(QSlider->getValue()));
         //[/UserSliderCode_QSlider]
     }
     else if (sliderThatWasMoved == gainSlider)
     {
         //[UserSliderCode_gainSlider] -- add your slider handling code here..
+		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kPeakGaindBParam,
+			float(gainSlider->getValue()));
         //[/UserSliderCode_gainSlider]
     }
 
@@ -163,7 +210,13 @@ void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slide
 //[MiscUserCode] You can add your own definitions of your custom methods or any other code here...
 void TransposedDirectFormIifilterAudioProcessorEditor::timerCallback()
 {
+	cutoffSlider->setValue(processor.cutoff_m, dontSendNotification);
+	QSlider->setValue(processor.Q_m, dontSendNotification);
+	gainSlider->setValue(processor.peakGaindB_m, dontSendNotification);
 
+	cutoffVal->setText(String(processor.cutoff_m), dontSendNotification);
+	QVal->setText(String(processor.Q_m), dontSendNotification);
+	gainVal->setText(String(processor.peakGaindB_m), dontSendNotification);
 }
 //[/MiscUserCode]
 
@@ -186,15 +239,15 @@ BEGIN_JUCER_METADATA
   <BACKGROUND backgroundColour="ffffffff"/>
   <SLIDER name="CutoffFreq" id="648750270b7670ed" memberName="cutoffSlider"
           virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="0"
-          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="FilterQ" id="577486c89cc0202" memberName="QSlider" virtualName=""
-          explicitFocusOrder="0" pos="120 72 60 60" min="0" max="10" int="0"
+          explicitFocusOrder="0" pos="120 72 60 60" min="0" max="1" int="0"
           style="RotaryVerticalDrag" textBoxPos="NoTextBox" textBoxEditable="1"
           textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="PeakGain" id="5f7024e3655032c8" memberName="gainSlider"
           virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="0"
-          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <LABEL name="new label" id="33577796e39c63e8" memberName="label" virtualName=""
          explicitFocusOrder="0" pos="15 40 65 24" edTextCol="ff000000"
@@ -209,6 +262,21 @@ BEGIN_JUCER_METADATA
   <LABEL name="new label" id="e663a55ba20d5ec6" memberName="label3" virtualName=""
          explicitFocusOrder="0" pos="215 40 65 24" edTextCol="ff000000"
          edBkgCol="0" labelText="Peak Gain" editableSingleClick="0" editableDoubleClick="0"
+         focusDiscardsChanges="0" fontname="Default font" fontsize="15"
+         bold="0" italic="0" justification="36"/>
+  <LABEL name="cutoff value" id="268afbfb55db8d67" memberName="cutoffVal"
+         virtualName="" explicitFocusOrder="0" pos="16 144 72 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
+         focusDiscardsChanges="0" fontname="Default font" fontsize="15"
+         bold="0" italic="0" justification="36"/>
+  <LABEL name="Q value" id="385c4b243b85aeb1" memberName="QVal" virtualName=""
+         explicitFocusOrder="0" pos="120 144 72 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
+         focusDiscardsChanges="0" fontname="Default font" fontsize="15"
+         bold="0" italic="0" justification="36"/>
+  <LABEL name="gain value" id="be0333f31aafb1e" memberName="gainVal" virtualName=""
+         explicitFocusOrder="0" pos="216 144 72 24" edTextCol="ff000000"
+         edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
 </JUCER_COMPONENT>

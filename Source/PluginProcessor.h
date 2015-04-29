@@ -87,6 +87,7 @@ public:
 	// resized.
 	int lastUIWidth_m, lastUIHeight_m;
 
+
 private:
 	TransDirectFormIIFilter directFormFilter;
 

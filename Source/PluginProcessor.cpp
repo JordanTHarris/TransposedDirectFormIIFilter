@@ -15,6 +15,13 @@
 //==============================================================================
 TransposedDirectFormIifilterAudioProcessor::TransposedDirectFormIifilterAudioProcessor()
 {
+	directFormFilter.setType(bq_type_lowpass);
+	cutoff_m = 0.50;
+	Q_m = 0.707;
+	peakGaindB_m = 0.0;
+	
+	lastUIWidth_m = 300;
+	lastUIHeight_m = 200;
 }
 
 TransposedDirectFormIifilterAudioProcessor::~TransposedDirectFormIifilterAudioProcessor()
@@ -180,19 +187,21 @@ void TransposedDirectFormIifilterAudioProcessor::processBlock (AudioSampleBuffer
 	// this code if your algorithm already fills all the output channels.
 	for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
 		buffer.clear (i, 0, buffer.getNumSamples());
-
+	
 	// This is the place where you'd normally do the guts of your plugin's
 	// audio processing...
 	for (int channel = 0; channel < getNumInputChannels(); ++channel)
 	{
-		float* channelData = buffer.getWritePointer (channel);
+		float* channelData = buffer.getWritePointer(channel);
 
-		for (long i = 0; i < buffer.getNumSamples; ++i) {
-			const float in = channelData[i];
+		for (long i = 0; i < buffer.getNumSamples(); ++i) {
+			float in = channelData[i];
 			float out = 0.0f;
-
-
+			
+			out = directFormFilter.process(in);
 			channelData[i] = out;
+
+			// Note: Create filterType UI control for filter to work.
 		}
 	}
 }
@@ -251,6 +260,12 @@ void TransposedDirectFormIifilterAudioProcessor::setStateInformation (const void
 			cutoff_m = (float)xmlState->getDoubleAttribute("cutoffFrequency", cutoff_m);
 			Q_m = (float)xmlState->getDoubleAttribute("Q", Q_m);
 			peakGaindB_m = (float)xmlState->getDoubleAttribute("peakGain", peakGaindB_m);
+
+			// Update filter
+			directFormFilter.setType(filterType_m);
+			directFormFilter.setFc(cutoff_m);
+			directFormFilter.setQ(Q_m);
+			directFormFilter.setPeakGain(peakGaindB_m);
 		}
 	}
 }
