@@ -29,26 +29,60 @@ const String TransposedDirectFormIifilterAudioProcessor::getName() const
 
 int TransposedDirectFormIifilterAudioProcessor::getNumParameters()
 {
-	return 0;
+	return kNumParameters;
 }
 
 float TransposedDirectFormIifilterAudioProcessor::getParameter (int index)
 {
-	return 0.0f;
+	switch (index) {
+	case kFilterTypeParam:	return filterType_m;
+	case kCutoffFreqParam:	return cutoff_m;
+	case kFilterQParam:		return Q_m;
+	case kPeakGaindBParam:	return peakGaindB_m;
+	default:				return 0.0;
+	}
 }
 
 void TransposedDirectFormIifilterAudioProcessor::setParameter (int index, float newValue)
 {
+	switch (index) {
+	case kFilterTypeParam:
+		filterType_m = newValue;
+		directFormFilter.setType(filterType_m);
+		break;
+	case kCutoffFreqParam:
+		cutoff_m = newValue;
+		directFormFilter.setFc(cutoff_m);
+		break;
+	case kFilterQParam:
+		Q_m = newValue;
+		directFormFilter.setQ(Q_m);
+		break;
+	case kPeakGaindBParam:
+		peakGaindB_m = newValue;
+		directFormFilter.setPeakGain(peakGaindB_m);
+		break;
+	default:
+		break;
+	}
 }
 
 const String TransposedDirectFormIifilterAudioProcessor::getParameterName (int index)
 {
+	switch (index) {
+	case kFilterTypeParam:		return "filter type";
+	case kCutoffFreqParam:		return "cutoff frequency";
+	case kFilterQParam:			return "Q";
+	case kPeakGaindBParam:		return "peak gain";
+	default:					break;
+	}
+
 	return String();
 }
 
 const String TransposedDirectFormIifilterAudioProcessor::getParameterText (int index)
 {
-	return String();
+	return String(getParameter(index), 2);		// parameter value, # decimal places
 }
 
 const String TransposedDirectFormIifilterAudioProcessor::getInputChannelName (int channelIndex) const
@@ -153,8 +187,13 @@ void TransposedDirectFormIifilterAudioProcessor::processBlock (AudioSampleBuffer
 	{
 		float* channelData = buffer.getWritePointer (channel);
 
-		// ..do something to the data...
-		
+		for (long i = 0; i < buffer.getNumSamples; ++i) {
+			const float in = channelData[i];
+			float out = 0.0f;
+
+
+			channelData[i] = out;
+		}
 	}
 }
 
@@ -175,12 +214,45 @@ void TransposedDirectFormIifilterAudioProcessor::getStateInformation (MemoryBloc
 	// You should use this method to store your parameters in the memory block.
 	// You could do that either as raw data, or use the XML or ValueTree classes
 	// as intermediaries to make it easy to save and load complex data.
+
+	// Create an out XML element...
+	XmlElement xml{ "JTH7PLUGINSETTINGS" };
+
+	// add some attributes to it...
+	xml.setAttribute("uiWidth", lastUIWidth_m);
+	xml.setAttribute("uiHeight", lastUIHeight_m);
+	xml.setAttribute("filterType", filterType_m);
+	xml.setAttribute("cutoffFrequency", cutoff_m);
+	xml.setAttribute("Q", Q_m);
+	xml.setAttribute("peakGain", peakGaindB_m);
+
+	// then use this helper function to stuff it into the binary block and return it...
+	copyXmlToBinary(xml, destData);
 }
 
 void TransposedDirectFormIifilterAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
 	// You should use this method to restore your parameters from this memory block,
 	// whose contents will have been created by the getStateInformation() call.
+
+	// This getXmlFromBinary() helper function retrieves our XML from the binary blob..
+	ScopedPointer<XmlElement> xmlState{ getXmlFromBinary(data, sizeInBytes) };
+
+	if (xmlState != 0) {
+
+		// make sure that it's actually our type of XML object...
+		if (xmlState->hasTagName("JTH7PLUGINSETTINGS")) {
+
+			// now pull out our parameters...
+			lastUIWidth_m = xmlState->getIntAttribute("uiWidth", lastUIWidth_m);
+			lastUIHeight_m = xmlState->getIntAttribute("uiHeight", lastUIHeight_m);
+
+			filterType_m = xmlState->getIntAttribute("filterType", filterType_m);
+			cutoff_m = (float)xmlState->getDoubleAttribute("cutoffFrequency", cutoff_m);
+			Q_m = (float)xmlState->getDoubleAttribute("Q", Q_m);
+			peakGaindB_m = (float)xmlState->getDoubleAttribute("peakGain", peakGaindB_m);
+		}
+	}
 }
 
 //==============================================================================

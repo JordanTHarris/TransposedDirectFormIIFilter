@@ -66,12 +66,30 @@ public:
 	void getStateInformation (MemoryBlock& destData) override;
 	void setStateInformation (const void* data, int sizeInBytes) override;
 
+	//==============================================================================
+	enum Parameters
+	{
+		kFilterTypeParam = 0,		// Type of filter (LP, HP, BP, etc.)
+		kCutoffFreqParam,			// Filter's cutoff frequency (Hz)
+		kFilterQParam,				// Filter's Q (resonance)
+		kPeakGaindBParam,			// Peak gain of the filter (dB)
+
+		kNumParameters				// Number of parameters
+	};
+
+	int filterType_m;
+	float cutoff_m;
+	float Q_m;
+	float peakGaindB_m;
+
+	// these are used to persist the UI's size - the values are stored along with the
+	// filter's other parameters, and the UI component will update them when it gets
+	// resized.
+	int lastUIWidth_m, lastUIHeight_m;
+
 private:
 	TransDirectFormIIFilter directFormFilter;
-	int type_m;
-	double cutoff_m;
-	double Q_m;
-	double peakGaindB_m;
+
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransposedDirectFormIifilterAudioProcessor)
 };
