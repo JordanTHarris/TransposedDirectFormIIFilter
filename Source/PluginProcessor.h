@@ -40,6 +40,7 @@ public:
 
 	int getNumParameters() override;
 	float getParameter (int index) override;
+    float getParameterDefaultValue (int index) override;
 	void setParameter (int index, float newValue) override;
 
 	const String getParameterName (int index) override;
@@ -90,6 +91,7 @@ public:
 
 private:
 	TransDirectFormIIFilter directFormFilter;
+	float sampleRate;
 
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TransposedDirectFormIifilterAudioProcessor)

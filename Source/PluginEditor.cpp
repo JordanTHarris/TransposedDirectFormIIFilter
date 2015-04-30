@@ -27,11 +27,11 @@
 //[/MiscUserDefs]
 
 //==============================================================================
-TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& p)
-    : AudioProcessorEditor(&p), processor{ p }
+TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& owner)
+    : AudioProcessorEditor(owner)
 {
     addAndMakeVisible (cutoffSlider = new Slider ("CutoffFreq"));
-    cutoffSlider->setRange (0, 1, 0);
+    cutoffSlider->setRange (30, 15000, 0);
     cutoffSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     cutoffSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     cutoffSlider->addListener (this);
@@ -43,7 +43,7 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     QSlider->addListener (this);
 
     addAndMakeVisible (gainSlider = new Slider ("PeakGain"));
-    gainSlider->setRange (0, 1, 0);
+    gainSlider->setRange (-60, 10, 0);
     gainSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     gainSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     gainSlider->addListener (this);
@@ -96,26 +96,43 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     gainVal->setColour (TextEditor::textColourId, Colours::black);
     gainVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
+    addAndMakeVisible (filterTypeCBox = new ComboBox ("filter type"));
+    filterTypeCBox->setEditableText (false);
+    filterTypeCBox->setJustificationType (Justification::centredLeft);
+    filterTypeCBox->setTextWhenNothingSelected (String::empty);
+    filterTypeCBox->setTextWhenNoChoicesAvailable (TRANS("(no choices)"));
+    filterTypeCBox->addItem (TRANS("Lowpass"), 1);
+    filterTypeCBox->addItem (TRANS("Highpass"), 2);
+    filterTypeCBox->addItem (TRANS("Bandpass"), 3);
+    filterTypeCBox->addItem (TRANS("Notch"), 4);
+    filterTypeCBox->addItem (TRANS("Peak"), 5);
+    filterTypeCBox->addItem (TRANS("Lowshelf"), 6);
+    filterTypeCBox->addItem (TRANS("Highshelf"), 7);
+    filterTypeCBox->addListener (this);
+
 
     //[UserPreSize]
 
     //[/UserPreSize]
 
-    setSize (300, 200);
+    setSize (500, 200);
 
 
     //[Constructor] You can add your own custom stuff here..
 
 	// Add the window resizer component for the bottom right of the UI
 	addAndMakeVisible(win_resizer = new ResizableCornerComponent(this, &win_resizeLimits));
-	win_resizeLimits.setSizeLimits(processor.lastUIWidth_m, processor.lastUIHeight_m, 500, 300);
+	win_resizeLimits.setSizeLimits(owner.lastUIWidth_m, owner.lastUIHeight_m, 500, 200);
 
-	setSize(processor.lastUIWidth_m, processor.lastUIHeight_m);
+	setSize(owner.lastUIWidth_m, owner.lastUIHeight_m);
 
 	// Use custom knob image strip for each slider.
 	cutoffSlider->setLookAndFeel(&knobLookAndFeel);
 	QSlider->setLookAndFeel(&knobLookAndFeel);
 	gainSlider->setLookAndFeel(&knobLookAndFeel);
+
+	// Set the ComboBox to select the Lowpass Filter by default
+	filterTypeCBox->setSelectedItemIndex(0, sendNotification);
 
 	startTimerHz(512);
 
@@ -136,6 +153,7 @@ TransposedDirectFormIifilterAudioProcessorEditor::~TransposedDirectFormIifilterA
     cutoffVal = nullptr;
     QVal = nullptr;
     gainVal = nullptr;
+    filterTypeCBox = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -168,9 +186,10 @@ void TransposedDirectFormIifilterAudioProcessorEditor::resized()
     cutoffVal->setBounds (16, 144, 72, 24);
     QVal->setBounds (120, 144, 72, 24);
     gainVal->setBounds (216, 144, 72, 24);
+    filterTypeCBox->setBounds (328, 40, 150, 24);
     //[UserResized] Add your own custom resize handling here..
-	processor.lastUIWidth_m = getWidth();
-	processor.lastUIHeight_m = getWidth();
+	getProcessor().lastUIWidth_m = getWidth();
+	getProcessor().lastUIHeight_m = getHeight();
     //[/UserResized]
 }
 
@@ -182,22 +201,22 @@ void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slide
     if (sliderThatWasMoved == cutoffSlider)
     {
         //[UserSliderCode_cutoffSlider] -- add your slider handling code here..
-		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kCutoffFreqParam,
-											float(cutoffSlider->getValue()));
+		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kCutoffFreqParam,
+											(float)cutoffSlider->getValue());
         //[/UserSliderCode_cutoffSlider]
     }
     else if (sliderThatWasMoved == QSlider)
     {
         //[UserSliderCode_QSlider] -- add your slider handling code here..
-		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterQParam,
-			float(QSlider->getValue()));
+		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterQParam,
+			(float)QSlider->getValue());
         //[/UserSliderCode_QSlider]
     }
     else if (sliderThatWasMoved == gainSlider)
     {
         //[UserSliderCode_gainSlider] -- add your slider handling code here..
-		processor.setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kPeakGaindBParam,
-			float(gainSlider->getValue()));
+		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kPeakGaindBParam,
+			(float)gainSlider->getValue());
         //[/UserSliderCode_gainSlider]
     }
 
@@ -205,18 +224,40 @@ void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slide
     //[/UsersliderValueChanged_Post]
 }
 
+void TransposedDirectFormIifilterAudioProcessorEditor::comboBoxChanged (ComboBox* comboBoxThatHasChanged)
+{
+    //[UsercomboBoxChanged_Pre]
+    //[/UsercomboBoxChanged_Pre]
+
+    if (comboBoxThatHasChanged == filterTypeCBox)
+    {
+        //[UserComboBoxCode_filterTypeCBox] -- add your combo box handling code here..
+		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterTypeParam,
+											(int)filterTypeCBox->getSelectedItemIndex());
+        //[/UserComboBoxCode_filterTypeCBox]
+    }
+
+    //[UsercomboBoxChanged_Post]
+    //[/UsercomboBoxChanged_Post]
+}
+
 
 
 //[MiscUserCode] You can add your own definitions of your custom methods or any other code here...
 void TransposedDirectFormIifilterAudioProcessorEditor::timerCallback()
 {
-	cutoffSlider->setValue(processor.cutoff_m, dontSendNotification);
-	QSlider->setValue(processor.Q_m, dontSendNotification);
-	gainSlider->setValue(processor.peakGaindB_m, dontSendNotification);
+	TransposedDirectFormIifilterAudioProcessor& ourProcessor = getProcessor();
 
-	cutoffVal->setText(String(processor.cutoff_m), dontSendNotification);
-	QVal->setText(String(processor.Q_m), dontSendNotification);
-	gainVal->setText(String(processor.peakGaindB_m), dontSendNotification);
+	cutoffSlider->setValue(ourProcessor.cutoff_m, dontSendNotification);
+	QSlider->setValue(ourProcessor.Q_m, dontSendNotification);
+	gainSlider->setValue(ourProcessor.peakGaindB_m, dontSendNotification);
+
+	filterTypeCBox->setSelectedItemIndex(ourProcessor.filterType_m, dontSendNotification);
+
+	cutoffVal->setText(String(ourProcessor.cutoff_m), dontSendNotification);
+	QVal->setText(String(ourProcessor.Q_m), dontSendNotification);
+	gainVal->setText(String(ourProcessor.peakGaindB_m), dontSendNotification);
+
 }
 //[/MiscUserCode]
 
@@ -232,22 +273,22 @@ BEGIN_JUCER_METADATA
 
 <JUCER_COMPONENT documentType="Component" className="TransposedDirectFormIifilterAudioProcessorEditor"
                  componentName="" parentClasses="public AudioProcessorEditor, public Timer"
-                 constructorParams="TransposedDirectFormIifilterAudioProcessor&amp; p"
-                 variableInitialisers="AudioProcessorEditor(&amp;p), processor{ p }"
-                 snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="1" initialWidth="300" initialHeight="200">
+                 constructorParams="TransposedDirectFormIifilterAudioProcessor&amp; owner"
+                 variableInitialisers="AudioProcessorEditor(owner)" snapPixels="8"
+                 snapActive="1" snapShown="1" overlayOpacity="0.330" fixedSize="1"
+                 initialWidth="500" initialHeight="200">
   <BACKGROUND backgroundColour="ffffffff"/>
   <SLIDER name="CutoffFreq" id="648750270b7670ed" memberName="cutoffSlider"
-          virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="0"
-          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="30"
+          max="15000" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="FilterQ" id="577486c89cc0202" memberName="QSlider" virtualName=""
           explicitFocusOrder="0" pos="120 72 60 60" min="0" max="1" int="0"
           style="RotaryVerticalDrag" textBoxPos="NoTextBox" textBoxEditable="1"
           textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="PeakGain" id="5f7024e3655032c8" memberName="gainSlider"
-          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="0"
-          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="-60"
+          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <LABEL name="new label" id="33577796e39c63e8" memberName="label" virtualName=""
          explicitFocusOrder="0" pos="15 40 65 24" edTextCol="ff000000"
@@ -279,6 +320,10 @@ BEGIN_JUCER_METADATA
          edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
+  <COMBOBOX name="filter type" id="8257fa5126e6325e" memberName="filterTypeCBox"
+            virtualName="" explicitFocusOrder="0" pos="328 40 150 24" editable="0"
+            layout="33" items="Lowpass&#10;Highpass&#10;Bandpass&#10;Notch&#10;Peak&#10;Lowshelf&#10;Highshelf"
+            textWhenNonSelected="" textWhenNoItems="(no choices)"/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA

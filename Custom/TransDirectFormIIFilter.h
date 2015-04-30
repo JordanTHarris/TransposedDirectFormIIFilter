@@ -41,8 +41,10 @@ public:
 	void setFc(double Fc);
 	void setPeakGain(double peakGaindB);
 	void setFilter(int type, double Fc, double Q, double peakGaindB);
-	float process(float in);
+	float processLeft(float in);
+	float processRight(float in);
 
+	void setSampleRate(double sampleRate);
 
 protected:
 	void calcFilter(void);
@@ -50,13 +52,21 @@ protected:
 	int type;
 	double a0, a1, a2, b1, b2;
 	double Fc, Q, peakGain;
-	double z1, z2;
+	double z1_L, z2_L, z1_R, z2_R;
+	double sampleRate;
 };
 
-inline float TransDirectFormIIFilter::process(float in) {
-	double out = in * a0 + z1;
-	z1 = (in * a1) + z2 - (b1 * out);
-	z2 = (in * a2) - (b2 * out);
+inline float TransDirectFormIIFilter::processLeft(float in) {
+	double out = in * a0 + z1_L;
+	z1_L = (in * a1) + z2_L - (b1 * out);
+	z2_L = (in * a2) - (b2 * out);
+	return out;
+}
+
+inline float TransDirectFormIIFilter::processRight(float in) {
+	double out = in * a0 + z1_R;
+	z1_R = (in * a1) + z2_R - (b1 * out);
+	z2_R = (in * a2) - (b2 * out);
 	return out;
 }
 

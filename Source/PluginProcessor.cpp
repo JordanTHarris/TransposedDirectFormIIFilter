@@ -11,17 +11,32 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+const float defaultType = bq_type_lowpass;
+const float defaultCutoff = 1000.0f;
+const float defaultQ = 0.7f;
+const float defaultGain = 0.0f;
 
 //==============================================================================
 TransposedDirectFormIifilterAudioProcessor::TransposedDirectFormIifilterAudioProcessor()
 {
-	directFormFilter.setType(bq_type_lowpass);
-	cutoff_m = 0.50;
-	Q_m = 0.707;
-	peakGaindB_m = 0.0;
+	// Set variables to default values
+	filterType_m = defaultType;
+	cutoff_m = defaultCutoff;
+	Q_m = defaultQ;
+	peakGaindB_m = defaultGain;
+
+	// Update filter with the default values
+
+	directFormFilter.setType(filterType_m);
+	directFormFilter.setFc(cutoff_m);
+	directFormFilter.setQ(Q_m);
+	directFormFilter.setPeakGain(peakGaindB_m);
 	
-	lastUIWidth_m = 300;
+	lastUIWidth_m = 500;
 	lastUIHeight_m = 200;
+
+	sampleRate = getSampleRate();
+	directFormFilter.setSampleRate(sampleRate);
 }
 
 TransposedDirectFormIifilterAudioProcessor::~TransposedDirectFormIifilterAudioProcessor()
@@ -71,6 +86,17 @@ void TransposedDirectFormIifilterAudioProcessor::setParameter (int index, float 
 		break;
 	default:
 		break;
+	}
+}
+
+float TransposedDirectFormIifilterAudioProcessor::getParameterDefaultValue(int index)
+{
+	switch (index) {
+	case kFilterTypeParam:	return defaultType;
+	case kCutoffFreqParam:	return defaultCutoff;
+	case kFilterQParam:		return defaultQ;
+	case kPeakGaindBParam:	return defaultGain;
+	default:				return 0.0;
 	}
 }
 
@@ -169,6 +195,8 @@ void TransposedDirectFormIifilterAudioProcessor::prepareToPlay (double sampleRat
 {
 	// Use this method as the place to do any pre-playback
 	// initialisation that you need..
+	sampleRate = getSampleRate();
+	directFormFilter.setSampleRate(sampleRate);
 }
 
 void TransposedDirectFormIifilterAudioProcessor::releaseResources()
@@ -179,6 +207,22 @@ void TransposedDirectFormIifilterAudioProcessor::releaseResources()
 
 void TransposedDirectFormIifilterAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
+	// This is the place where you'd normally do the guts of your plugin's
+	// audio processing...
+
+	if (getNumInputChannels() < 2) {
+	}
+	else {
+		float* leftData = buffer.getWritePointer(0);
+		float* rightData = buffer.getWritePointer(1);
+		for (long i = 0; i < buffer.getNumSamples(); ++i) {
+			const float inL = leftData[i];
+			const float inR = rightData[i];
+			leftData[i] = directFormFilter.processLeft(inL);
+			rightData[i] = directFormFilter.processRight(inR);
+		}
+	}
+
 	// In case we have more outputs than inputs, this code clears any output
 	// channels that didn't contain input data, (because these aren't
 	// guaranteed to be empty - they may contain garbage).
@@ -187,23 +231,6 @@ void TransposedDirectFormIifilterAudioProcessor::processBlock (AudioSampleBuffer
 	// this code if your algorithm already fills all the output channels.
 	for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
 		buffer.clear (i, 0, buffer.getNumSamples());
-	
-	// This is the place where you'd normally do the guts of your plugin's
-	// audio processing...
-	for (int channel = 0; channel < getNumInputChannels(); ++channel)
-	{
-		float* channelData = buffer.getWritePointer(channel);
-
-		for (long i = 0; i < buffer.getNumSamples(); ++i) {
-			float in = channelData[i];
-			float out = 0.0f;
-			
-			out = directFormFilter.process(in);
-			channelData[i] = out;
-
-			// Note: Create filterType UI control for filter to work.
-		}
-	}
 }
 
 //==============================================================================
@@ -225,7 +252,7 @@ void TransposedDirectFormIifilterAudioProcessor::getStateInformation (MemoryBloc
 	// as intermediaries to make it easy to save and load complex data.
 
 	// Create an out XML element...
-	XmlElement xml{ "JTH7PLUGINSETTINGS" };
+	XmlElement xml{ "JTHPLUGINSETTINGS" };
 
 	// add some attributes to it...
 	xml.setAttribute("uiWidth", lastUIWidth_m);
@@ -247,10 +274,10 @@ void TransposedDirectFormIifilterAudioProcessor::setStateInformation (const void
 	// This getXmlFromBinary() helper function retrieves our XML from the binary blob..
 	ScopedPointer<XmlElement> xmlState{ getXmlFromBinary(data, sizeInBytes) };
 
-	if (xmlState != 0) {
+	if (xmlState != nullptr) {
 
 		// make sure that it's actually our type of XML object...
-		if (xmlState->hasTagName("JTH7PLUGINSETTINGS")) {
+		if (xmlState->hasTagName("JTHPLUGINSETTINGS")) {
 
 			// now pull out our parameters...
 			lastUIWidth_m = xmlState->getIntAttribute("uiWidth", lastUIWidth_m);

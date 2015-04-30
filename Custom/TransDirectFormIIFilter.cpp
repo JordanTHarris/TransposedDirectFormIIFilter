@@ -19,14 +19,16 @@ TransDirectFormIIFilter::TransDirectFormIIFilter()
 	Fc = 0.50;
 	Q = 0.707;
 	peakGain = 0.0;
-	z1 = z2 = 0.0;
+	z1_L = z2_L = 0.0;
+	z1_R = z2_R = 0.0;
 }
 
 TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double Fc, double Q,
 												 double peakGaindB)
 {
 	setFilter(type, Fc, Q, peakGaindB);
-	z1 = z2 = 0.0;
+	z1_L = z2_L = 0.0;
+	z1_R = z2_R = 0.0;
 }
 
 TransDirectFormIIFilter::~TransDirectFormIIFilter()
@@ -46,7 +48,7 @@ void TransDirectFormIIFilter::setQ(double Q)
 
 void TransDirectFormIIFilter::setFc(double Fc)
 {
-	this->Fc = Fc;
+	this->Fc = Fc / sampleRate;
 	calcFilter();
 }
 
@@ -167,6 +169,12 @@ void TransDirectFormIIFilter::calcFilter(void)
 		break;
 	}
 	return;
+}
+
+void TransDirectFormIIFilter::setSampleRate(double sampleRate)
+{
+	this->sampleRate = sampleRate;
+	calcFilter();
 }
 
 //==============================================================================

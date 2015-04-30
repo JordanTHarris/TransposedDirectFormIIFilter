@@ -38,11 +38,12 @@
 */
 class TransposedDirectFormIifilterAudioProcessorEditor  : public AudioProcessorEditor,
                                                           public Timer,
-                                                          public SliderListener
+                                                          public SliderListener,
+                                                          public ComboBoxListener
 {
 public:
     //==============================================================================
-    TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& p);
+    TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& owner);
     ~TransposedDirectFormIifilterAudioProcessorEditor();
 
     //==============================================================================
@@ -53,17 +54,21 @@ public:
     void paint (Graphics& g);
     void resized();
     void sliderValueChanged (Slider* sliderThatWasMoved);
+    void comboBoxChanged (ComboBox* comboBoxThatHasChanged);
 
 
 
 private:
     //[UserVariables]   -- You can add your own custom variables in this section.
-	TransposedDirectFormIifilterAudioProcessor& processor;
 	KnobLookAndFeel knobLookAndFeel;
 
 	ScopedPointer<ResizableCornerComponent> win_resizer;	// Corner resizer
 	ComponentBoundsConstrainer win_resizeLimits;			// Resizing limits
 
+	TransposedDirectFormIifilterAudioProcessor& getProcessor() const
+	{
+		return static_cast<TransposedDirectFormIifilterAudioProcessor&>(processor);
+	}
 
     //[/UserVariables]
 
@@ -77,6 +82,7 @@ private:
     ScopedPointer<Label> cutoffVal;
     ScopedPointer<Label> QVal;
     ScopedPointer<Label> gainVal;
+    ScopedPointer<ComboBox> filterTypeCBox;
 
 
     //==============================================================================
