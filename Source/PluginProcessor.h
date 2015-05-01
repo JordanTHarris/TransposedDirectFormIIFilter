@@ -72,7 +72,7 @@ public:
 	{
 		kFilterTypeParam = 0,		// Type of filter (LP, HP, BP, etc.)
 		kCutoffFreqParam,			// Filter's cutoff frequency (Hz)
-		kFilterQParam,				// Filter's Q (resonance)
+		kFilterResParam,			// Filter's Q (resonance)
 		kPeakGaindBParam,			// Peak gain of the filter (dB)
 
 		kNumParameters				// Number of parameters
@@ -80,7 +80,7 @@ public:
 
 	int filterType_m;
 	float cutoff_m;
-	float Q_m;
+	float resonance_m;
 	float peakGaindB_m;
 
 	// these are used to persist the UI's size - the values are stored along with the

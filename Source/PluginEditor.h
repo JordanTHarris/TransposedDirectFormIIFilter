@@ -74,13 +74,13 @@ private:
 
     //==============================================================================
     ScopedPointer<Slider> cutoffSlider;
-    ScopedPointer<Slider> QSlider;
+    ScopedPointer<Slider> resonanceSlider;
     ScopedPointer<Slider> gainSlider;
     ScopedPointer<Label> label;
     ScopedPointer<Label> label2;
     ScopedPointer<Label> label3;
     ScopedPointer<Label> cutoffVal;
-    ScopedPointer<Label> QVal;
+    ScopedPointer<Label> resVal;
     ScopedPointer<Label> gainVal;
     ScopedPointer<ComboBox> filterTypeCBox;
 

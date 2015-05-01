@@ -36,11 +36,11 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     cutoffSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     cutoffSlider->addListener (this);
 
-    addAndMakeVisible (QSlider = new Slider ("FilterQ"));
-    QSlider->setRange (0, 1, 0);
-    QSlider->setSliderStyle (Slider::RotaryVerticalDrag);
-    QSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
-    QSlider->addListener (this);
+    addAndMakeVisible (resonanceSlider = new Slider ("Resonance"));
+    resonanceSlider->setRange (0, 1, 0);
+    resonanceSlider->setSliderStyle (Slider::RotaryVerticalDrag);
+    resonanceSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
+    resonanceSlider->addListener (this);
 
     addAndMakeVisible (gainSlider = new Slider ("PeakGain"));
     gainSlider->setRange (-60, 10, 0);
@@ -57,7 +57,7 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     label->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
     addAndMakeVisible (label2 = new Label ("new label",
-                                           TRANS("Q")));
+                                           TRANS("Resonance")));
     label2->setFont (Font (15.00f, Font::plain));
     label2->setJustificationType (Justification::centred);
     label2->setEditable (false, false, false);
@@ -80,13 +80,13 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     cutoffVal->setColour (TextEditor::textColourId, Colours::black);
     cutoffVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
-    addAndMakeVisible (QVal = new Label ("Q value",
-                                         TRANS("label text")));
-    QVal->setFont (Font (15.00f, Font::plain));
-    QVal->setJustificationType (Justification::centred);
-    QVal->setEditable (false, false, false);
-    QVal->setColour (TextEditor::textColourId, Colours::black);
-    QVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
+    addAndMakeVisible (resVal = new Label ("resonance value",
+                                           TRANS("label text")));
+    resVal->setFont (Font (15.00f, Font::plain));
+    resVal->setJustificationType (Justification::centred);
+    resVal->setEditable (false, false, false);
+    resVal->setColour (TextEditor::textColourId, Colours::black);
+    resVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
     addAndMakeVisible (gainVal = new Label ("gain value",
                                             TRANS("label text")));
@@ -128,7 +128,7 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
 
 	// Use custom knob image strip for each slider.
 	cutoffSlider->setLookAndFeel(&knobLookAndFeel);
-	QSlider->setLookAndFeel(&knobLookAndFeel);
+	resonanceSlider->setLookAndFeel(&knobLookAndFeel);
 	gainSlider->setLookAndFeel(&knobLookAndFeel);
 
 	// Set the ComboBox to select the Lowpass Filter by default
@@ -145,13 +145,13 @@ TransposedDirectFormIifilterAudioProcessorEditor::~TransposedDirectFormIifilterA
     //[/Destructor_pre]
 
     cutoffSlider = nullptr;
-    QSlider = nullptr;
+    resonanceSlider = nullptr;
     gainSlider = nullptr;
     label = nullptr;
     label2 = nullptr;
     label3 = nullptr;
     cutoffVal = nullptr;
-    QVal = nullptr;
+    resVal = nullptr;
     gainVal = nullptr;
     filterTypeCBox = nullptr;
 
@@ -178,14 +178,14 @@ void TransposedDirectFormIifilterAudioProcessorEditor::resized()
     //[/UserPreResize]
 
     cutoffSlider->setBounds (20, 72, 60, 60);
-    QSlider->setBounds (120, 72, 60, 60);
+    resonanceSlider->setBounds (120, 72, 60, 60);
     gainSlider->setBounds (220, 72, 60, 60);
     label->setBounds (15, 40, 65, 24);
     label2->setBounds (115, 40, 65, 24);
     label3->setBounds (215, 40, 65, 24);
-    cutoffVal->setBounds (16, 144, 72, 24);
-    QVal->setBounds (120, 144, 72, 24);
-    gainVal->setBounds (216, 144, 72, 24);
+    cutoffVal->setBounds (14, 144, 72, 24);
+    resVal->setBounds (114, 144, 72, 24);
+    gainVal->setBounds (214, 144, 72, 24);
     filterTypeCBox->setBounds (328, 40, 150, 24);
     //[UserResized] Add your own custom resize handling here..
 	getProcessor().lastUIWidth_m = getWidth();
@@ -202,21 +202,21 @@ void TransposedDirectFormIifilterAudioProcessorEditor::sliderValueChanged (Slide
     {
         //[UserSliderCode_cutoffSlider] -- add your slider handling code here..
 		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kCutoffFreqParam,
-											(float)cutoffSlider->getValue());
+												(float)cutoffSlider->getValue());
         //[/UserSliderCode_cutoffSlider]
     }
-    else if (sliderThatWasMoved == QSlider)
+    else if (sliderThatWasMoved == resonanceSlider)
     {
-        //[UserSliderCode_QSlider] -- add your slider handling code here..
-		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterQParam,
-			(float)QSlider->getValue());
-        //[/UserSliderCode_QSlider]
+        //[UserSliderCode_resonanceSlider] -- add your slider handling code here..
+		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kFilterResParam,
+												(float)resonanceSlider->getValue());
+        //[/UserSliderCode_resonanceSlider]
     }
     else if (sliderThatWasMoved == gainSlider)
     {
         //[UserSliderCode_gainSlider] -- add your slider handling code here..
 		getProcessor().setParameterNotifyingHost(TransposedDirectFormIifilterAudioProcessor::kPeakGaindBParam,
-			(float)gainSlider->getValue());
+												(float)gainSlider->getValue());
         //[/UserSliderCode_gainSlider]
     }
 
@@ -249,13 +249,13 @@ void TransposedDirectFormIifilterAudioProcessorEditor::timerCallback()
 	TransposedDirectFormIifilterAudioProcessor& ourProcessor = getProcessor();
 
 	cutoffSlider->setValue(ourProcessor.cutoff_m, dontSendNotification);
-	QSlider->setValue(ourProcessor.Q_m, dontSendNotification);
+	resonanceSlider->setValue(ourProcessor.resonance_m, dontSendNotification);
 	gainSlider->setValue(ourProcessor.peakGaindB_m, dontSendNotification);
 
 	filterTypeCBox->setSelectedItemIndex(ourProcessor.filterType_m, dontSendNotification);
 
 	cutoffVal->setText(String(ourProcessor.cutoff_m), dontSendNotification);
-	QVal->setText(String(ourProcessor.Q_m), dontSendNotification);
+	resVal->setText(String(ourProcessor.resonance_m), dontSendNotification);
 	gainVal->setText(String(ourProcessor.peakGaindB_m), dontSendNotification);
 
 }
@@ -282,10 +282,10 @@ BEGIN_JUCER_METADATA
           virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="30"
           max="15000" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
-  <SLIDER name="FilterQ" id="577486c89cc0202" memberName="QSlider" virtualName=""
-          explicitFocusOrder="0" pos="120 72 60 60" min="0" max="1" int="0"
-          style="RotaryVerticalDrag" textBoxPos="NoTextBox" textBoxEditable="1"
-          textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
+  <SLIDER name="Resonance" id="577486c89cc0202" memberName="resonanceSlider"
+          virtualName="" explicitFocusOrder="0" pos="120 72 60 60" min="0"
+          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="PeakGain" id="5f7024e3655032c8" memberName="gainSlider"
           virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="-60"
           max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
@@ -297,7 +297,7 @@ BEGIN_JUCER_METADATA
          fontsize="15" bold="0" italic="0" justification="36"/>
   <LABEL name="new label" id="8658d26cc045c768" memberName="label2" virtualName=""
          explicitFocusOrder="0" pos="115 40 65 24" edTextCol="ff000000"
-         edBkgCol="0" labelText="Q" editableSingleClick="0" editableDoubleClick="0"
+         edBkgCol="0" labelText="Resonance" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
   <LABEL name="new label" id="e663a55ba20d5ec6" memberName="label3" virtualName=""
@@ -306,17 +306,17 @@ BEGIN_JUCER_METADATA
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
   <LABEL name="cutoff value" id="268afbfb55db8d67" memberName="cutoffVal"
-         virtualName="" explicitFocusOrder="0" pos="16 144 72 24" edTextCol="ff000000"
+         virtualName="" explicitFocusOrder="0" pos="14 144 72 24" edTextCol="ff000000"
          edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
-  <LABEL name="Q value" id="385c4b243b85aeb1" memberName="QVal" virtualName=""
-         explicitFocusOrder="0" pos="120 144 72 24" edTextCol="ff000000"
+  <LABEL name="resonance value" id="385c4b243b85aeb1" memberName="resVal"
+         virtualName="" explicitFocusOrder="0" pos="114 144 72 24" edTextCol="ff000000"
          edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
   <LABEL name="gain value" id="be0333f31aafb1e" memberName="gainVal" virtualName=""
-         explicitFocusOrder="0" pos="216 144 72 24" edTextCol="ff000000"
+         explicitFocusOrder="0" pos="214 144 72 24" edTextCol="ff000000"
          edBkgCol="0" labelText="label text" editableSingleClick="0" editableDoubleClick="0"
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>

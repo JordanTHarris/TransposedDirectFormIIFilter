@@ -13,7 +13,7 @@
 
 const float defaultType = bq_type_lowpass;
 const float defaultCutoff = 1000.0f;
-const float defaultQ = 0.7f;
+const float defaultResonance = 0.7f;
 const float defaultGain = 0.0f;
 
 //==============================================================================
@@ -22,14 +22,14 @@ TransposedDirectFormIifilterAudioProcessor::TransposedDirectFormIifilterAudioPro
 	// Set variables to default values
 	filterType_m = defaultType;
 	cutoff_m = defaultCutoff;
-	Q_m = defaultQ;
+	resonance_m = defaultResonance;
 	peakGaindB_m = defaultGain;
 
 	// Update filter with the default values
 
 	directFormFilter.setType(filterType_m);
 	directFormFilter.setFc(cutoff_m);
-	directFormFilter.setQ(Q_m);
+	directFormFilter.setResonance(resonance_m);
 	directFormFilter.setPeakGain(peakGaindB_m);
 	
 	lastUIWidth_m = 500;
@@ -57,11 +57,11 @@ int TransposedDirectFormIifilterAudioProcessor::getNumParameters()
 float TransposedDirectFormIifilterAudioProcessor::getParameter (int index)
 {
 	switch (index) {
-	case kFilterTypeParam:	return filterType_m;
-	case kCutoffFreqParam:	return cutoff_m;
-	case kFilterQParam:		return Q_m;
-	case kPeakGaindBParam:	return peakGaindB_m;
-	default:				return 0.0;
+	case kFilterTypeParam:		return filterType_m;
+	case kCutoffFreqParam:		return cutoff_m;
+	case kFilterResParam:		return resonance_m;
+	case kPeakGaindBParam:		return peakGaindB_m;
+	default:					return 0.0;
 	}
 }
 
@@ -76,9 +76,9 @@ void TransposedDirectFormIifilterAudioProcessor::setParameter (int index, float 
 		cutoff_m = newValue;
 		directFormFilter.setFc(cutoff_m);
 		break;
-	case kFilterQParam:
-		Q_m = newValue;
-		directFormFilter.setQ(Q_m);
+	case kFilterResParam:
+		resonance_m = newValue;
+		directFormFilter.setResonance(resonance_m);
 		break;
 	case kPeakGaindBParam:
 		peakGaindB_m = newValue;
@@ -92,11 +92,11 @@ void TransposedDirectFormIifilterAudioProcessor::setParameter (int index, float 
 float TransposedDirectFormIifilterAudioProcessor::getParameterDefaultValue(int index)
 {
 	switch (index) {
-	case kFilterTypeParam:	return defaultType;
-	case kCutoffFreqParam:	return defaultCutoff;
-	case kFilterQParam:		return defaultQ;
-	case kPeakGaindBParam:	return defaultGain;
-	default:				return 0.0;
+	case kFilterTypeParam:		return defaultType;
+	case kCutoffFreqParam:		return defaultCutoff;
+	case kFilterResParam:		return defaultResonance;
+	case kPeakGaindBParam:		return defaultGain;
+	default:					return 0.0;
 	}
 }
 
@@ -105,7 +105,7 @@ const String TransposedDirectFormIifilterAudioProcessor::getParameterName (int i
 	switch (index) {
 	case kFilterTypeParam:		return "filter type";
 	case kCutoffFreqParam:		return "cutoff frequency";
-	case kFilterQParam:			return "Q";
+	case kFilterResParam:		return "resonance";
 	case kPeakGaindBParam:		return "peak gain";
 	default:					break;
 	}
@@ -197,6 +197,11 @@ void TransposedDirectFormIifilterAudioProcessor::prepareToPlay (double sampleRat
 	// initialisation that you need..
 	sampleRate = getSampleRate();
 	directFormFilter.setSampleRate(sampleRate);
+
+	directFormFilter.setType(filterType_m);
+	directFormFilter.setFc(cutoff_m);
+	directFormFilter.setResonance(resonance_m);
+	directFormFilter.setPeakGain(peakGaindB_m);
 }
 
 void TransposedDirectFormIifilterAudioProcessor::releaseResources()
@@ -259,7 +264,7 @@ void TransposedDirectFormIifilterAudioProcessor::getStateInformation (MemoryBloc
 	xml.setAttribute("uiHeight", lastUIHeight_m);
 	xml.setAttribute("filterType", filterType_m);
 	xml.setAttribute("cutoffFrequency", cutoff_m);
-	xml.setAttribute("Q", Q_m);
+	xml.setAttribute("resonance", resonance_m);
 	xml.setAttribute("peakGain", peakGaindB_m);
 
 	// then use this helper function to stuff it into the binary block and return it...
@@ -285,13 +290,13 @@ void TransposedDirectFormIifilterAudioProcessor::setStateInformation (const void
 
 			filterType_m = xmlState->getIntAttribute("filterType", filterType_m);
 			cutoff_m = (float)xmlState->getDoubleAttribute("cutoffFrequency", cutoff_m);
-			Q_m = (float)xmlState->getDoubleAttribute("Q", Q_m);
+			resonance_m = (float)xmlState->getDoubleAttribute("resonance", resonance_m);
 			peakGaindB_m = (float)xmlState->getDoubleAttribute("peakGain", peakGaindB_m);
 
 			// Update filter
 			directFormFilter.setType(filterType_m);
 			directFormFilter.setFc(cutoff_m);
-			directFormFilter.setQ(Q_m);
+			directFormFilter.setResonance(resonance_m);
 			directFormFilter.setPeakGain(peakGaindB_m);
 		}
 	}

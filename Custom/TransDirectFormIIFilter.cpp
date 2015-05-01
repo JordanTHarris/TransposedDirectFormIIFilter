@@ -13,20 +13,24 @@
 //==============================================================================
 TransDirectFormIIFilter::TransDirectFormIIFilter()
 {
-	type = bq_type_lowpass;
+	sampleRate = 44100;				// default sample rate when constructed
+	type = bq_type_lowpass;			// lowpass filter by default
 	a0 = 1.0;
 	a1 = a2 = b1 = b2 = 0.0;
-	Fc = 0.50;
-	Q = 0.707;
+	Fc = 5000.0 / sampleRate;
+	Q = 1.0 / (2.0 * (1.0 - 0.7));	// default resonance: 0.7
+	
 	peakGain = 0.0;
 	z1_L = z2_L = 0.0;
 	z1_R = z2_R = 0.0;
 }
 
-TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double Fc, double Q,
+TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double Fc, double res,
 												 double peakGaindB)
 {
-	setFilter(type, Fc, Q, peakGaindB);
+	// Initialize the filter with specific (static) parameters. Useful for
+	// using as a static filter; not modulating parameters.
+	setFilter(type, Fc, res, peakGaindB);
 	z1_L = z2_L = 0.0;
 	z1_R = z2_R = 0.0;
 }
@@ -40,31 +44,45 @@ void TransDirectFormIIFilter::setType(int type) {
 	calcFilter();
 }
 
-void TransDirectFormIIFilter::setQ(double Q)
+void TransDirectFormIIFilter::setResonance(double resonance)
 {
-	this->Q = Q;
+	// Used for setting the resonance amount. Range: (0-1)
+	this->Q = 1.0 / (2.0 * (1.0 - resonance));
 	calcFilter();
 }
 
+
 void TransDirectFormIIFilter::setFc(double Fc)
 {
+	// Used for changing the filter's cutoff parameter (Hz)
 	this->Fc = Fc / sampleRate;
 	calcFilter();
 }
 
 void TransDirectFormIIFilter::setPeakGain(double peakGaindB)
 {
+	// Used for changing the peak gain (dB) of some filter types:
+	// Peak, Lowshelf, Highshelf
 	this->peakGain = peakGaindB;
 	calcFilter();
 }
 
-void TransDirectFormIIFilter::setFilter(int type, double Fc, double Q,
+void TransDirectFormIIFilter::setFilter(int type, double Fc, double resonance,
 										double peakGaindB)
 {
+	// Statically set the filters parameters. 
 	this->type = type;
-	this->Q = Q;
+	this->Q = 1.0 / (2.0 * (1.0 - resonance));
 	this->Fc = Fc;
 	setPeakGain(peakGaindB);
+}
+
+void TransDirectFormIIFilter::setSampleRate(double sampleRate)
+{
+	// Set the sample rate used by the host. Needs to be used to accurately
+	// calculate the coefficients of the filter from the cutoff.
+	this->sampleRate = sampleRate;
+	calcFilter();
 }
 
 void TransDirectFormIIFilter::calcFilter(void)
@@ -169,12 +187,6 @@ void TransDirectFormIIFilter::calcFilter(void)
 		break;
 	}
 	return;
-}
-
-void TransDirectFormIIFilter::setSampleRate(double sampleRate)
-{
-	this->sampleRate = sampleRate;
-	calcFilter();
 }
 
 //==============================================================================

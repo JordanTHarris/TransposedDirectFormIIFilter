@@ -34,13 +34,13 @@ enum {
 class TransDirectFormIIFilter {
 public:
 	TransDirectFormIIFilter();
-	TransDirectFormIIFilter(int type, double Fc, double Q, double peakGaindB);
+	TransDirectFormIIFilter(int type, double Fc, double res, double peakGaindB);
 	~TransDirectFormIIFilter();
 	void setType(int type);
-	void setQ(double Q);
+	void setResonance(double resonance);
 	void setFc(double Fc);
 	void setPeakGain(double peakGaindB);
-	void setFilter(int type, double Fc, double Q, double peakGaindB);
+	void setFilter(int type, double Fc, double res, double peakGaindB);
 	float processLeft(float in);
 	float processRight(float in);
 
@@ -57,6 +57,9 @@ protected:
 };
 
 inline float TransDirectFormIIFilter::processLeft(float in) {
+	// Performs the actual processing for one sample of data, on one channel.
+	// If 2 channels are needed (stereo), use the appropriate process function
+	// for the given channel (left & right)
 	double out = in * a0 + z1_L;
 	z1_L = (in * a1) + z2_L - (b1 * out);
 	z2_L = (in * a2) - (b2 * out);
@@ -64,6 +67,9 @@ inline float TransDirectFormIIFilter::processLeft(float in) {
 }
 
 inline float TransDirectFormIIFilter::processRight(float in) {
+	// Performs the actual processing for one sample of data, on one channel.
+	// If 2 channels are needed (stereo), use the appropriate process function
+	// for the given channel (left & right)
 	double out = in * a0 + z1_R;
 	z1_R = (in * a1) + z2_R - (b1 * out);
 	z2_R = (in * a2) - (b2 * out);
