@@ -5,4 +5,9 @@
     <LocalDebuggerWorkingDirectory>.\debug</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerCommand>C:\Programming\Plugin Testing\Plugin Host (Debug).exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>.\debug</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
 </Project>

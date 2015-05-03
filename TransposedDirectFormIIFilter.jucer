@@ -10,10 +10,23 @@
               pluginSilenceInIsSilenceOut="0" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="TransposedDirectFormIIFilterAU" pluginRTASCategory=""
               aaxIdentifier="com.yourcompany.TransposedDirectFormIIFilter"
-              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="3.1.0"
+              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="3.1.1"
               companyName="Jordan Harris">
   <MAINGROUP id="TbQSG7" name="TransposedDirectFormIIFilter">
     <GROUP id="{37802F40-7C17-ABB9-99F0-B21F65E4630D}" name="Custom">
+      <GROUP id="{646096DD-4546-6A46-2AB8-B2452E515F26}" name="Parameters">
+        <FILE id="eqFW5O" name="Parameters.cpp" compile="1" resource="0" file="Custom/Parameters/Parameters.cpp"/>
+        <FILE id="zdLNBs" name="Parameters.h" compile="0" resource="0" file="Custom/Parameters/Parameters.h"/>
+      </GROUP>
+      <GROUP id="{02A5FE35-2749-349F-F162-92946CA5BAF0}" name="FilterGraph">
+        <FILE id="PGaROk" name="FilterGraph.cpp" compile="1" resource="0" file="Custom/FilterGraph/FilterGraph.cpp"/>
+        <FILE id="MQfqDf" name="FilterGraph.h" compile="0" resource="0" file="Custom/FilterGraph/FilterGraph.h"/>
+        <FILE id="gQMXhF" name="FilterInfo.cpp" compile="1" resource="0" file="Custom/FilterGraph/FilterInfo.cpp"/>
+        <FILE id="DJTaqE" name="FilterInfo.h" compile="0" resource="0" file="Custom/FilterGraph/FilterInfo.h"/>
+      </GROUP>
+      <GROUP id="{FC545FE8-74A9-8EA1-0481-B193B90B57EF}" name="Utilities">
+        <FILE id="fjJT5s" name="DspUtilities.h" compile="0" resource="0" file="Custom/Utilities/DspUtilities.h"/>
+      </GROUP>
       <FILE id="mWf3Fq" name="TransDirectFormIIFilter.cpp" compile="1" resource="0"
             file="Custom/TransDirectFormIIFilter.cpp"/>
       <FILE id="cR809p" name="TransDirectFormIIFilter.h" compile="0" resource="0"
@@ -56,13 +69,12 @@
         <MODULEPATH id="juce_data_structures" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
-        <MODULEPATH id="juce_video" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_audio_formats" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_audio_processors" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
         <MODULEPATH id="juce_audio_plugin_client" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../../../../../../../Programming/CPPLibraries/JUCE-WINDOWS/modules"/>
       </MODULEPATHS>
     </VS2013>
   </EXPORTFORMATS>
@@ -72,14 +84,13 @@
     <MODULES id="juce_audio_formats" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_audio_processors" showAllCode="1" useLocalCopy="1"/>
+    <MODULES id="juce_audio_utils" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_core" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_events" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_graphics" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_gui_basics" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_gui_extra" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_video" showAllCode="1" useLocalCopy="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_QUICKTIME="disabled"/>
 </JUCERPROJECT>

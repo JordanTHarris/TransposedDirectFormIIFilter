@@ -12,7 +12,7 @@
 #include "PluginEditor.h"
 
 const float defaultType = bq_type_lowpass;
-const float defaultCutoff = 1000.0f;
+const float defaultCutoff = 20.0f;
 const float defaultResonance = 0.7f;
 const float defaultGain = 0.0f;
 

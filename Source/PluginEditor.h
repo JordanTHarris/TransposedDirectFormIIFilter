@@ -24,6 +24,7 @@
 #include "JuceHeader.h"
 #include "../Custom/KnobLookAndFeel.h"
 #include "PluginProcessor.h"
+#include "../Custom/Utilities/DspUtilities.h"
 //[/Headers]
 
 
@@ -61,6 +62,7 @@ public:
 private:
     //[UserVariables]   -- You can add your own custom variables in this section.
 	KnobLookAndFeel knobLookAndFeel;
+	TooltipWindow toolTipWindow;
 
 	ScopedPointer<ResizableCornerComponent> win_resizer;	// Corner resizer
 	ComponentBoundsConstrainer win_resizeLimits;			// Resizing limits

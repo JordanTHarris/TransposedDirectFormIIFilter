@@ -31,18 +31,21 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     : AudioProcessorEditor(owner)
 {
     addAndMakeVisible (cutoffSlider = new Slider ("CutoffFreq"));
-    cutoffSlider->setRange (30, 15000, 0);
+    cutoffSlider->setTooltip (TRANS("Logarithmic control of the filter\'s cutoff frequency."));
+    cutoffSlider->setRange (22.5064, 130.096, 0);
     cutoffSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     cutoffSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     cutoffSlider->addListener (this);
 
     addAndMakeVisible (resonanceSlider = new Slider ("Resonance"));
+    resonanceSlider->setTooltip (TRANS("Filter\'s resonance control. Self-oscillation at 1.0."));
     resonanceSlider->setRange (0, 1, 0);
     resonanceSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     resonanceSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
     resonanceSlider->addListener (this);
 
     addAndMakeVisible (gainSlider = new Slider ("PeakGain"));
+    gainSlider->setTooltip (TRANS("Peak gain for the Peak, Lowshelf, and Highshelf filters."));
     gainSlider->setRange (-60, 10, 0);
     gainSlider->setSliderStyle (Slider::RotaryVerticalDrag);
     gainSlider->setTextBoxStyle (Slider::NoTextBox, false, 80, 20);
@@ -97,6 +100,7 @@ TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAu
     gainVal->setColour (TextEditor::backgroundColourId, Colour (0x00000000));
 
     addAndMakeVisible (filterTypeCBox = new ComboBox ("filter type"));
+    filterTypeCBox->setTooltip (TRANS("Select the filter type used."));
     filterTypeCBox->setEditableText (false);
     filterTypeCBox->setJustificationType (Justification::centredLeft);
     filterTypeCBox->setTextWhenNothingSelected (String::empty);
@@ -254,9 +258,10 @@ void TransposedDirectFormIifilterAudioProcessorEditor::timerCallback()
 
 	filterTypeCBox->setSelectedItemIndex(ourProcessor.filterType_m, dontSendNotification);
 
-	cutoffVal->setText(String(ourProcessor.cutoff_m), dontSendNotification);
+	// Note: convert pitch to frequency to display on the label
+	cutoffVal->setText(String(pitchToFreq(ourProcessor.cutoff_m)) + " Hz", dontSendNotification);
 	resVal->setText(String(ourProcessor.resonance_m), dontSendNotification);
-	gainVal->setText(String(ourProcessor.peakGaindB_m), dontSendNotification);
+	gainVal->setText(String(ourProcessor.peakGaindB_m) + " dB", dontSendNotification);
 
 }
 //[/MiscUserCode]
@@ -279,16 +284,17 @@ BEGIN_JUCER_METADATA
                  initialWidth="500" initialHeight="200">
   <BACKGROUND backgroundColour="ffffffff"/>
   <SLIDER name="CutoffFreq" id="648750270b7670ed" memberName="cutoffSlider"
-          virtualName="" explicitFocusOrder="0" pos="20 72 60 60" min="30"
-          max="15000" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
-          textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
+          virtualName="" explicitFocusOrder="0" pos="20 72 60 60" tooltip="Logarithmic control of the filter's cutoff frequency."
+          min="22.50637" max="130.09578200000001" int="0" style="RotaryVerticalDrag"
+          textBoxPos="NoTextBox" textBoxEditable="1" textBoxWidth="80"
+          textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="Resonance" id="577486c89cc0202" memberName="resonanceSlider"
-          virtualName="" explicitFocusOrder="0" pos="120 72 60 60" min="0"
-          max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          virtualName="" explicitFocusOrder="0" pos="120 72 60 60" tooltip="Filter's resonance control. Self-oscillation at 1.0."
+          min="0" max="1" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <SLIDER name="PeakGain" id="5f7024e3655032c8" memberName="gainSlider"
-          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" min="-60"
-          max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
+          virtualName="" explicitFocusOrder="0" pos="220 72 60 60" tooltip="Peak gain for the Peak, Lowshelf, and Highshelf filters."
+          min="-60" max="10" int="0" style="RotaryVerticalDrag" textBoxPos="NoTextBox"
           textBoxEditable="1" textBoxWidth="80" textBoxHeight="20" skewFactor="1"/>
   <LABEL name="new label" id="33577796e39c63e8" memberName="label" virtualName=""
          explicitFocusOrder="0" pos="15 40 65 24" edTextCol="ff000000"
@@ -321,8 +327,8 @@ BEGIN_JUCER_METADATA
          focusDiscardsChanges="0" fontname="Default font" fontsize="15"
          bold="0" italic="0" justification="36"/>
   <COMBOBOX name="filter type" id="8257fa5126e6325e" memberName="filterTypeCBox"
-            virtualName="" explicitFocusOrder="0" pos="328 40 150 24" editable="0"
-            layout="33" items="Lowpass&#10;Highpass&#10;Bandpass&#10;Notch&#10;Peak&#10;Lowshelf&#10;Highshelf"
+            virtualName="" explicitFocusOrder="0" pos="328 40 150 24" tooltip="Select the filter type used."
+            editable="0" layout="33" items="Lowpass&#10;Highpass&#10;Bandpass&#10;Notch&#10;Peak&#10;Lowshelf&#10;Highshelf"
             textWhenNonSelected="" textWhenNoItems="(no choices)"/>
 </JUCER_COMPONENT>
 

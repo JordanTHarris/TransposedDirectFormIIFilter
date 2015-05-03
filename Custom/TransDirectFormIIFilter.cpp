@@ -17,7 +17,7 @@ TransDirectFormIIFilter::TransDirectFormIIFilter()
 	type = bq_type_lowpass;			// lowpass filter by default
 	a0 = 1.0;
 	a1 = a2 = b1 = b2 = 0.0;
-	Fc = 5000.0 / sampleRate;
+	Fc = pitchToFreq(5000.0) / sampleRate;
 	Q = 1.0 / (2.0 * (1.0 - 0.7));	// default resonance: 0.7
 	
 	peakGain = 0.0;
@@ -28,8 +28,6 @@ TransDirectFormIIFilter::TransDirectFormIIFilter()
 TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double Fc, double res,
 												 double peakGaindB)
 {
-	// Initialize the filter with specific (static) parameters. Useful for
-	// using as a static filter; not modulating parameters.
 	setFilter(type, Fc, res, peakGaindB);
 	z1_L = z2_L = 0.0;
 	z1_R = z2_R = 0.0;
@@ -46,23 +44,18 @@ void TransDirectFormIIFilter::setType(int type) {
 
 void TransDirectFormIIFilter::setResonance(double resonance)
 {
-	// Used for setting the resonance amount. Range: (0-1)
 	this->Q = 1.0 / (2.0 * (1.0 - resonance));
 	calcFilter();
 }
 
-
 void TransDirectFormIIFilter::setFc(double Fc)
 {
-	// Used for changing the filter's cutoff parameter (Hz)
-	this->Fc = Fc / sampleRate;
+	this->Fc = pitchToFreq(Fc) / sampleRate;
 	calcFilter();
 }
 
-void TransDirectFormIIFilter::setPeakGain(double peakGaindB)
+	void TransDirectFormIIFilter::setPeakGain(double peakGaindB)
 {
-	// Used for changing the peak gain (dB) of some filter types:
-	// Peak, Lowshelf, Highshelf
 	this->peakGain = peakGaindB;
 	calcFilter();
 }
@@ -70,25 +63,22 @@ void TransDirectFormIIFilter::setPeakGain(double peakGaindB)
 void TransDirectFormIIFilter::setFilter(int type, double Fc, double resonance,
 										double peakGaindB)
 {
-	// Statically set the filters parameters. 
 	this->type = type;
 	this->Q = 1.0 / (2.0 * (1.0 - resonance));
-	this->Fc = Fc;
+	this->Fc = pitchToFreq(Fc);
 	setPeakGain(peakGaindB);
 }
 
 void TransDirectFormIIFilter::setSampleRate(double sampleRate)
 {
-	// Set the sample rate used by the host. Needs to be used to accurately
-	// calculate the coefficients of the filter from the cutoff.
+	
 	this->sampleRate = sampleRate;
 	calcFilter();
 }
 
 void TransDirectFormIIFilter::calcFilter(void)
 {
-	// Calculate the coefficients for the filter. 
-	// Uses different coefficients for different filter types
+	
 	double norm;
 	double V = pow(10, fabs(peakGain) / 20.0);
 	double K = tan(M_PI * Fc);
