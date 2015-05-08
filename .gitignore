@@ -36,6 +36,14 @@
 *.res
 *.vst3
 
+# Visual Studio Project/Solutions Files
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sdf
+*.sln
+
 # =========================
 # Operating System Files
 # =========================
