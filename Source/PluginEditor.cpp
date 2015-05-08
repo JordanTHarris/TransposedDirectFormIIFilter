@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Introjucer version: 3.1.0
+  Created with Introjucer version: 3.1.1
 
   ------------------------------------------------------------------------------
 
@@ -30,6 +30,9 @@
 TransposedDirectFormIifilterAudioProcessorEditor::TransposedDirectFormIifilterAudioProcessorEditor (TransposedDirectFormIifilterAudioProcessor& owner)
     : AudioProcessorEditor(owner)
 {
+    //[Constructor_pre] You can add your own custom stuff here..
+    //[/Constructor_pre]
+
     addAndMakeVisible (cutoffSlider = new Slider ("CutoffFreq"));
     cutoffSlider->setTooltip (TRANS("Logarithmic control of the filter\'s cutoff frequency."));
     cutoffSlider->setRange (22.5064, 130.096, 0);

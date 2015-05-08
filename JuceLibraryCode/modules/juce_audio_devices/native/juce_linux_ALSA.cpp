@@ -57,7 +57,7 @@ static void getDeviceSampleRates (snd_pcm_t* handle, Array<double>& rates)
     for (int i = 0; ratesToTry[i] != 0; ++i)
     {
         if (snd_pcm_hw_params_any (handle, hwParams) >= 0
-             && snd_pcm_hw_params_test_rate (handle, hwParams, ratesToTry[i], 0) == 0)
+            && snd_pcm_hw_params_test_rate (handle, hwParams, (unsigned int) ratesToTry[i], 0) == 0)
         {
             rates.addIfNotAlreadyThere ((double) ratesToTry[i]);
         }
@@ -149,7 +149,7 @@ class ALSADevice
 {
 public:
     ALSADevice (const String& devID, bool forInput)
-        : handle (0),
+        : handle (nullptr),
           bitDepth (16),
           numChannelsRunning (0),
           latency (0),
@@ -183,16 +183,16 @@ public:
 
     void closeNow()
     {
-        if (handle != 0)
+        if (handle != nullptr)
         {
             snd_pcm_close (handle);
-            handle = 0;
+            handle = nullptr;
         }
     }
 
     bool setParameters (unsigned int sampleRate, int numChannels, int bufferSize)
     {
-        if (handle == 0)
+        if (handle == nullptr)
             return false;
 
         JUCE_ALSA_LOG ("ALSADevice::setParameters(" << deviceID << ", "
@@ -257,10 +257,10 @@ public:
 
         int dir = 0;
         unsigned int periods = 4;
-        snd_pcm_uframes_t samplesPerPeriod = bufferSize;
+        snd_pcm_uframes_t samplesPerPeriod = (snd_pcm_uframes_t) bufferSize;
 
         if (JUCE_ALSA_FAILED (snd_pcm_hw_params_set_rate_near (handle, hwParams, &sampleRate, 0))
-            || JUCE_ALSA_FAILED (snd_pcm_hw_params_set_channels (handle, hwParams, numChannels))
+            || JUCE_ALSA_FAILED (snd_pcm_hw_params_set_channels (handle, hwParams, (unsigned int ) numChannels))
             || JUCE_ALSA_FAILED (snd_pcm_hw_params_set_periods_near (handle, hwParams, &periods, &dir))
             || JUCE_ALSA_FAILED (snd_pcm_hw_params_set_period_size_near (handle, hwParams, &samplesPerPeriod, &dir))
             || JUCE_ALSA_FAILED (snd_pcm_hw_params (handle, hwParams)))
@@ -274,7 +274,7 @@ public:
              || JUCE_ALSA_FAILED (snd_pcm_hw_params_get_periods (hwParams, &periods, &dir)))
             latency = 0;
         else
-            latency = frames * (periods - 1); // (this is the method JACK uses to guess the latency..)
+            latency = (int) frames * ((int) periods - 1); // (this is the method JACK uses to guess the latency..)
 
         JUCE_ALSA_LOG ("frames: " << (int) frames << ", periods: " << (int) periods
                           << ", samplesPerPeriod: " << (int) samplesPerPeriod);
@@ -316,22 +316,22 @@ public:
 
         if (isInterleaved)
         {
-            scratch.ensureSize (sizeof (float) * numSamples * numChannelsRunning, false);
+            scratch.ensureSize ((size_t) ((int) sizeof (float) * numSamples * numChannelsRunning), false);
 
             for (int i = 0; i < numChannelsRunning; ++i)
                 converter->convertSamples (scratch.getData(), i, data[i], 0, numSamples);
 
-            numDone = snd_pcm_writei (handle, scratch.getData(), numSamples);
+            numDone = snd_pcm_writei (handle, scratch.getData(), (snd_pcm_uframes_t) numSamples);
         }
         else
         {
             for (int i = 0; i < numChannelsRunning; ++i)
                 converter->convertSamples (data[i], data[i], numSamples);
 
-            numDone = snd_pcm_writen (handle, (void**) data, numSamples);
+            numDone = snd_pcm_writen (handle, (void**) data, (snd_pcm_uframes_t) numSamples);
         }
 
-        if (numDone < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, numDone, 1 /* silent */)))
+        if (numDone < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, (int) numDone, 1 /* silent */)))
             return false;
 
         if (numDone < numSamples)
@@ -347,12 +347,12 @@ public:
 
         if (isInterleaved)
         {
-            scratch.ensureSize (sizeof (float) * numSamples * numChannelsRunning, false);
+            scratch.ensureSize ((size_t) ((int) sizeof (float) * numSamples * numChannelsRunning), false);
             scratch.fillWith (0); // (not clearing this data causes warnings in valgrind)
 
-            snd_pcm_sframes_t num = snd_pcm_readi (handle, scratch.getData(), numSamples);
+            snd_pcm_sframes_t num = snd_pcm_readi (handle, scratch.getData(), (snd_pcm_uframes_t) numSamples);
 
-            if (num < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, num, 1 /* silent */)))
+            if (num < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, (int) num, 1 /* silent */)))
                 return false;
 
             if (num < numSamples)
@@ -363,9 +363,9 @@ public:
         }
         else
         {
-            snd_pcm_sframes_t num = snd_pcm_readn (handle, (void**) data, numSamples);
+            snd_pcm_sframes_t num = snd_pcm_readn (handle, (void**) data, (snd_pcm_uframes_t) numSamples);
 
-            if (num < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, num, 1 /* silent */)))
+            if (num < 0 && JUCE_ALSA_FAILED (snd_pcm_recover (handle, (int) num, 1 /* silent */)))
                 return false;
 
             if (num < numSamples)
@@ -503,7 +503,7 @@ public:
             }
         }
 
-        ensureMinimumNumBitsSet (outputChannels, minChansOut);
+        ensureMinimumNumBitsSet (outputChannels, (int) minChansOut);
 
         outputChannelBuffer.setSize (jmax ((int) minChansOut, outputChannels.getHighestBit()) + 1, bufferSize);
         outputChannelBuffer.clear();
@@ -557,7 +557,7 @@ public:
                 return;
             }
 
-            ensureMinimumNumBitsSet (currentInputChans, minChansIn);
+            ensureMinimumNumBitsSet (currentInputChans, (int) minChansIn);
 
             if (! inputDevice->setParameters ((unsigned int) sampleRate,
                                               jlimit ((int) minChansIn, (int) maxChansIn, currentInputChans.getHighestBit() + 1),
@@ -644,8 +644,21 @@ public:
     {
         while (! threadShouldExit())
         {
-            if (inputDevice != nullptr && inputDevice->handle)
+            if (inputDevice != nullptr && inputDevice->handle != nullptr)
             {
+                if (outputDevice == nullptr || outputDevice->handle == nullptr)
+                {
+                    JUCE_ALSA_FAILED (snd_pcm_wait (inputDevice->handle, 2000));
+
+                    if (threadShouldExit())
+                        break;
+
+                    snd_pcm_sframes_t avail = snd_pcm_avail_update (inputDevice->handle);
+
+                    if (avail < 0)
+                        JUCE_ALSA_FAILED (snd_pcm_recover (inputDevice->handle, (int) avail, 0));
+                }
+
                 audioIoInProgress = true;
 
                 if (! inputDevice->readFromInputDevice (inputChannelBuffer, bufferSize))
@@ -675,11 +688,11 @@ public:
                 else
                 {
                     for (int i = 0; i < outputChannelDataForCallback.size(); ++i)
-                        zeromem (outputChannelDataForCallback[i], sizeof (float) * bufferSize);
+                        zeromem (outputChannelDataForCallback[i], sizeof (float) * (size_t) bufferSize);
                 }
             }
 
-            if (outputDevice != nullptr && outputDevice->handle)
+            if (outputDevice != nullptr && outputDevice->handle != nullptr)
             {
                 JUCE_ALSA_FAILED (snd_pcm_wait (outputDevice->handle, 2000));
 
@@ -689,7 +702,7 @@ public:
                 snd_pcm_sframes_t avail = snd_pcm_avail_update (outputDevice->handle);
 
                 if (avail < 0)
-                    JUCE_ALSA_FAILED (snd_pcm_recover (outputDevice->handle, avail, 0));
+                    JUCE_ALSA_FAILED (snd_pcm_recover (outputDevice->handle, (int) avail, 0));
 
                 audioIoInProgress = true;
 
@@ -702,6 +715,7 @@ public:
                 audioIoInProgress = false;
             }
         }
+
         audioIoInProgress = false;
     }
 
@@ -1078,9 +1092,9 @@ private:
                         if (snd_ctl_pcm_next_device (handle, &device) < 0 || device < 0)
                             break;
 
-                        snd_pcm_info_set_device (pcmInfo, device);
+                        snd_pcm_info_set_device (pcmInfo, (unsigned int) device);
 
-                        for (int subDevice = 0, nbSubDevice = 1; subDevice < nbSubDevice; ++subDevice)
+                        for (unsigned int subDevice = 0, nbSubDevice = 1; subDevice < nbSubDevice; ++subDevice)
                         {
                             snd_pcm_info_set_subdevice (pcmInfo, subDevice);
                             snd_pcm_info_set_stream (pcmInfo, SND_PCM_STREAM_CAPTURE);
@@ -1104,7 +1118,7 @@ private:
                             }
                             else
                             {
-                                id << "hw:" << cardId << "," << device << "," << subDevice;
+                                id << "hw:" << cardId << "," << device << "," << (int) subDevice;
                                 name << cardName << ", " << snd_pcm_info_get_name (pcmInfo)
                                      << " {" <<  snd_pcm_info_get_subdevice_name (pcmInfo) << "}";
                             }

@@ -28,7 +28,7 @@ TransposedDirectFormIifilterAudioProcessor::TransposedDirectFormIifilterAudioPro
 	// Update filter with the default values
 
 	directFormFilter.setType(filterType_m);
-	directFormFilter.setFc(cutoff_m);
+	directFormFilter.setCutoff(cutoff_m);
 	directFormFilter.setResonance(resonance_m);
 	directFormFilter.setPeakGain(peakGaindB_m);
 	
@@ -74,7 +74,7 @@ void TransposedDirectFormIifilterAudioProcessor::setParameter (int index, float 
 		break;
 	case kCutoffFreqParam:
 		cutoff_m = newValue;
-		directFormFilter.setFc(cutoff_m);
+		directFormFilter.setCutoff(cutoff_m);
 		break;
 	case kFilterResParam:
 		resonance_m = newValue;
@@ -199,7 +199,7 @@ void TransposedDirectFormIifilterAudioProcessor::prepareToPlay (double sampleRat
 	directFormFilter.setSampleRate(sampleRate);
 
 	directFormFilter.setType(filterType_m);
-	directFormFilter.setFc(cutoff_m);
+	directFormFilter.setCutoff(cutoff_m);
 	directFormFilter.setResonance(resonance_m);
 	directFormFilter.setPeakGain(peakGaindB_m);
 }
@@ -214,17 +214,18 @@ void TransposedDirectFormIifilterAudioProcessor::processBlock (AudioSampleBuffer
 {
 	// This is the place where you'd normally do the guts of your plugin's
 	// audio processing...
+	const int numSamples = buffer.getNumSamples();
+	int channel = 0;
+	// Apply filter to the new output:
+	for (channel = 0; channel < getNumInputChannels(); ++channel)
+	{
+		float* channelData = buffer.getWritePointer(channel);
 
-	if (getNumInputChannels() < 2) {
-	}
-	else {
-		float* leftData = buffer.getWritePointer(0);
-		float* rightData = buffer.getWritePointer(1);
-		for (long i = 0; i < buffer.getNumSamples(); ++i) {
-			const float inL = leftData[i];
-			const float inR = rightData[i];
-			leftData[i] = directFormFilter.processLeft(inL);
-			rightData[i] = directFormFilter.processRight(inR);
+		for (int i = 0; i < numSamples; ++i) {
+			const float in = channelData[i];
+
+			// Process the audio buffer through the TransDirectFormIIFilter
+			channelData[i] = directFormFilter.processChannel(in, channel);
 		}
 	}
 
@@ -295,7 +296,7 @@ void TransposedDirectFormIifilterAudioProcessor::setStateInformation (const void
 
 			// Update filter
 			directFormFilter.setType(filterType_m);
-			directFormFilter.setFc(cutoff_m);
+			directFormFilter.setCutoff(cutoff_m);
 			directFormFilter.setResonance(resonance_m);
 			directFormFilter.setPeakGain(peakGaindB_m);
 		}

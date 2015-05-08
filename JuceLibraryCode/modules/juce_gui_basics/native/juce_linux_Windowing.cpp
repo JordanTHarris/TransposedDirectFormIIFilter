@@ -165,6 +165,9 @@ namespace Keys
 
 bool KeyPress::isKeyCurrentlyDown (const int keyCode)
 {
+    if (display == nullptr)
+        return false;
+
     int keysym;
 
     if (keyCode & Keys::extendedKeyModifier)
@@ -186,7 +189,7 @@ bool KeyPress::isKeyCurrentlyDown (const int keyCode)
 
     ScopedXLock xlock;
 
-    const int keycode = XKeysymToKeycode (display, keysym);
+    const int keycode = XKeysymToKeycode (display, (KeySym) keysym);
 
     const int keybyte = keycode >> 3;
     const int keybit = (1 << (keycode & 7));
@@ -212,54 +215,58 @@ namespace XSHMHelpers
         if (! isChecked)
         {
             isChecked = true;
-            int major, minor;
-            Bool pixmaps;
 
-            ScopedXLock xlock;
-
-            if (XShmQueryVersion (display, &major, &minor, &pixmaps))
+            if (display != nullptr)
             {
-                trappedErrorCode = 0;
-                XErrorHandler oldHandler = XSetErrorHandler (errorTrapHandler);
+                int major, minor;
+                Bool pixmaps;
 
-                XShmSegmentInfo segmentInfo;
-                zerostruct (segmentInfo);
+                ScopedXLock xlock;
 
-                XImage* xImage = XShmCreateImage (display, DefaultVisual (display, DefaultScreen (display)),
-                                                  24, ZPixmap, 0, &segmentInfo, 50, 50);
-
-                if ((segmentInfo.shmid = shmget (IPC_PRIVATE,
-                                                 xImage->bytes_per_line * xImage->height,
-                                                 IPC_CREAT | 0777)) >= 0)
+                if (XShmQueryVersion (display, &major, &minor, &pixmaps))
                 {
-                    segmentInfo.shmaddr = (char*) shmat (segmentInfo.shmid, 0, 0);
+                    trappedErrorCode = 0;
+                    XErrorHandler oldHandler = XSetErrorHandler (errorTrapHandler);
 
-                    if (segmentInfo.shmaddr != (void*) -1)
+                    XShmSegmentInfo segmentInfo;
+                    zerostruct (segmentInfo);
+
+                    XImage* xImage = XShmCreateImage (display, DefaultVisual (display, DefaultScreen (display)),
+                                                      24, ZPixmap, 0, &segmentInfo, 50, 50);
+
+                    if ((segmentInfo.shmid = shmget (IPC_PRIVATE,
+                                                     (size_t) (xImage->bytes_per_line * xImage->height),
+                                                     IPC_CREAT | 0777)) >= 0)
                     {
-                        segmentInfo.readOnly = False;
-                        xImage->data = segmentInfo.shmaddr;
-                        XSync (display, False);
+                        segmentInfo.shmaddr = (char*) shmat (segmentInfo.shmid, 0, 0);
 
-                        if (XShmAttach (display, &segmentInfo) != 0)
+                        if (segmentInfo.shmaddr != (void*) -1)
                         {
+                            segmentInfo.readOnly = False;
+                            xImage->data = segmentInfo.shmaddr;
                             XSync (display, False);
-                            XShmDetach (display, &segmentInfo);
 
-                            isAvailable = true;
+                            if (XShmAttach (display, &segmentInfo) != 0)
+                            {
+                                XSync (display, False);
+                                XShmDetach (display, &segmentInfo);
+
+                                isAvailable = true;
+                            }
                         }
+
+                        XFlush (display);
+                        XDestroyImage (xImage);
+
+                        shmdt (segmentInfo.shmaddr);
                     }
 
-                    XFlush (display);
-                    XDestroyImage (xImage);
+                    shmctl (segmentInfo.shmid, IPC_RMID, 0);
 
-                    shmdt (segmentInfo.shmaddr);
+                    XSetErrorHandler (oldHandler);
+                    if (trappedErrorCode != 0)
+                        isAvailable = false;
                 }
-
-                shmctl (segmentInfo.shmid, IPC_RMID, 0);
-
-                XSetErrorHandler (oldHandler);
-                if (trappedErrorCode != 0)
-                    isAvailable = false;
             }
         }
 
@@ -288,25 +295,29 @@ namespace XRender
 
         if (! hasLoaded)
         {
-            ScopedXLock xlock;
-            hasLoaded = true;
-
-            if (void* h = dlopen ("libXrender.so", RTLD_GLOBAL | RTLD_NOW))
+            if (display != nullptr)
             {
-                xRenderQueryVersion         = (tXRenderQueryVersion)        dlsym (h, "XRenderQueryVersion");
-                xRenderFindStandardFormat   = (tXRenderFindStandardFormat)  dlsym (h, "XRenderFindStandardFormat");
-                xRenderFindFormat           = (tXRenderFindFormat)          dlsym (h, "XRenderFindFormat");
-                xRenderFindVisualFormat     = (tXRenderFindVisualFormat)    dlsym (h, "XRenderFindVisualFormat");
-            }
+                hasLoaded = true;
 
-            if (xRenderQueryVersion != nullptr
-                 && xRenderFindStandardFormat != nullptr
-                 && xRenderFindFormat != nullptr
-                 && xRenderFindVisualFormat != nullptr)
-            {
-                int major, minor;
-                if (xRenderQueryVersion (display, &major, &minor))
-                    return true;
+                ScopedXLock xlock;
+
+                if (void* h = dlopen ("libXrender.so", RTLD_GLOBAL | RTLD_NOW))
+                {
+                    xRenderQueryVersion         = (tXRenderQueryVersion)        dlsym (h, "XRenderQueryVersion");
+                    xRenderFindStandardFormat   = (tXRenderFindStandardFormat)  dlsym (h, "XRenderFindStandardFormat");
+                    xRenderFindFormat           = (tXRenderFindFormat)          dlsym (h, "XRenderFindFormat");
+                    xRenderFindVisualFormat     = (tXRenderFindVisualFormat)    dlsym (h, "XRenderFindVisualFormat");
+                }
+
+                if (xRenderQueryVersion != nullptr
+                     && xRenderFindStandardFormat != nullptr
+                     && xRenderFindFormat != nullptr
+                     && xRenderFindVisualFormat != nullptr)
+                {
+                    int major, minor;
+                    if (xRenderQueryVersion (display, &major, &minor))
+                        return true;
+                }
             }
 
             xRenderQueryVersion = nullptr;
@@ -317,7 +328,7 @@ namespace XRender
 
     static bool hasCompositingWindowManager()
     {
-        return XGetSelectionOwner (display, Atoms::get().compositingManager) != 0;
+        return display != nullptr && XGetSelectionOwner (display, Atoms::get().compositingManager) != 0;
     }
 
     static XRenderPictFormat* findPictureFormat()
@@ -494,7 +505,7 @@ class XBitmapImage  : public ImagePixelData
 {
 public:
     XBitmapImage (const Image::PixelFormat format, const int w, const int h,
-                  const bool clearImage, const int imageDepth_, Visual* visual)
+                  const bool clearImage, const unsigned int imageDepth_, Visual* visual)
         : ImagePixelData (format, w, h),
           imageDepth (imageDepth_),
           gc (None)
@@ -517,12 +528,13 @@ public:
             segmentInfo.shmaddr = (char *) -1;
             segmentInfo.readOnly = False;
 
-            xImage = XShmCreateImage (display, visual, imageDepth, ZPixmap, 0, &segmentInfo, w, h);
+            xImage = XShmCreateImage (display, visual, imageDepth, ZPixmap, 0,
+                                      &segmentInfo, (unsigned int) w, (unsigned int) h);
 
             if (xImage != nullptr)
             {
                 if ((segmentInfo.shmid = shmget (IPC_PRIVATE,
-                                                 xImage->bytes_per_line * xImage->height,
+                                                 (size_t) (xImage->bytes_per_line * xImage->height),
                                                  IPC_CREAT | 0777)) >= 0)
                 {
                     if (segmentInfo.shmid != -1)
@@ -550,10 +562,10 @@ public:
             }
         }
 
-        if (! usingXShm)
+        if (! isUsingXShm())
        #endif
         {
-            imageDataAllocated.allocate (lineStride * h, format == Image::ARGB && clearImage);
+            imageDataAllocated.allocate ((size_t) (lineStride * h), format == Image::ARGB && clearImage);
             imageData = imageDataAllocated;
 
             xImage = (XImage*) ::calloc (1, sizeof (XImage));
@@ -576,15 +588,15 @@ public:
 
             if (imageDepth == 16)
             {
-                const int pixelStride = 2;
-                const int lineStride = ((w * pixelStride + 3) & ~3);
+                const int pixStride = 2;
+                const int stride = ((w * pixStride + 3) & ~3);
 
-                imageData16Bit.malloc (lineStride * h);
+                imageData16Bit.malloc ((size_t) (stride * h));
                 xImage->data = imageData16Bit;
                 xImage->bitmap_pad = 16;
-                xImage->depth = pixelStride * 8;
-                xImage->bytes_per_line = lineStride;
-                xImage->bits_per_pixel = pixelStride * 8;
+                xImage->depth = pixStride * 8;
+                xImage->bytes_per_line = stride;
+                xImage->bits_per_pixel = pixStride * 8;
                 xImage->red_mask   = visual->red_mask;
                 xImage->green_mask = visual->green_mask;
                 xImage->blue_mask  = visual->blue_mask;
@@ -603,7 +615,7 @@ public:
             XFreeGC (display, gc);
 
        #if JUCE_USE_XSHM
-        if (usingXShm)
+        if (isUsingXShm())
         {
             XShmDetach (display, &segmentInfo);
 
@@ -646,7 +658,7 @@ public:
 
     ImageType* createType() const override     { return new NativeImageType(); }
 
-    void blitToWindow (Window window, int dx, int dy, int dw, int dh, int sx, int sy)
+    void blitToWindow (Window window, int dx, int dy, unsigned int dw, unsigned int dh, int sx, int sy)
     {
         ScopedXLock xlock;
 
@@ -667,50 +679,54 @@ public:
 
         if (imageDepth == 16)
         {
-            const uint32 rMask   = xImage->red_mask;
-            const uint32 gMask   = xImage->green_mask;
-            const uint32 bMask   = xImage->blue_mask;
-            const uint32 rShiftL = jmax (0,  getShiftNeeded (rMask));
-            const uint32 rShiftR = jmax (0, -getShiftNeeded (rMask));
-            const uint32 gShiftL = jmax (0,  getShiftNeeded (gMask));
-            const uint32 gShiftR = jmax (0, -getShiftNeeded (gMask));
-            const uint32 bShiftL = jmax (0,  getShiftNeeded (bMask));
-            const uint32 bShiftR = jmax (0, -getShiftNeeded (bMask));
+            const uint32 rMask   = (uint32) xImage->red_mask;
+            const uint32 gMask   = (uint32) xImage->green_mask;
+            const uint32 bMask   = (uint32) xImage->blue_mask;
+            const uint32 rShiftL = (uint32) jmax (0,  getShiftNeeded (rMask));
+            const uint32 rShiftR = (uint32) jmax (0, -getShiftNeeded (rMask));
+            const uint32 gShiftL = (uint32) jmax (0,  getShiftNeeded (gMask));
+            const uint32 gShiftR = (uint32) jmax (0, -getShiftNeeded (gMask));
+            const uint32 bShiftL = (uint32) jmax (0,  getShiftNeeded (bMask));
+            const uint32 bShiftR = (uint32) jmax (0, -getShiftNeeded (bMask));
 
             const Image::BitmapData srcData (Image (this), Image::BitmapData::readOnly);
 
-            for (int y = sy; y < sy + dh; ++y)
+            for (int y = sy; y < sy + (int)dh; ++y)
             {
                 const uint8* p = srcData.getPixelPointer (sx, y);
 
-                for (int x = sx; x < sx + dw; ++x)
+                for (int x = sx; x < sx + (int)dw; ++x)
                 {
                     const PixelRGB* const pixel = (const PixelRGB*) p;
                     p += srcData.pixelStride;
 
                     XPutPixel (xImage, x, y,
-                               (((((uint32) pixel->getRed()) << rShiftL) >> rShiftR) & rMask)
+                                   (((((uint32) pixel->getRed())   << rShiftL) >> rShiftR) & rMask)
                                  | (((((uint32) pixel->getGreen()) << gShiftL) >> gShiftR) & gMask)
-                                 | (((((uint32) pixel->getBlue()) << bShiftL) >> bShiftR) & bMask));
+                                 | (((((uint32) pixel->getBlue())  << bShiftL) >> bShiftR) & bMask));
                 }
             }
         }
 
         // blit results to screen.
        #if JUCE_USE_XSHM
-        if (usingXShm)
+        if (isUsingXShm())
             XShmPutImage (display, (::Drawable) window, gc, xImage, sx, sy, dx, dy, dw, dh, True);
         else
        #endif
             XPutImage (display, (::Drawable) window, gc, xImage, sx, sy, dx, dy, dw, dh);
     }
 
+    #if JUCE_USE_XSHM
+    bool isUsingXShm() const noexcept       { return usingXShm; }
+    #endif
+
 private:
     //==============================================================================
     XImage* xImage;
-    const int imageDepth;
-    HeapBlock <uint8> imageDataAllocated;
-    HeapBlock <char> imageData16Bit;
+    const unsigned int imageDepth;
+    HeapBlock<uint8> imageDataAllocated;
+    HeapBlock<char> imageData16Bit;
     int pixelStride, lineStride;
     uint8* imageData;
     GC gc;
@@ -740,13 +756,13 @@ namespace PixmapHelpers
     {
         ScopedXLock xlock;
 
-        const int width = image.getWidth();
-        const int height = image.getHeight();
-        HeapBlock <uint32> colour (width * height);
+        const unsigned int width = (unsigned int) image.getWidth();
+        const unsigned int height = (unsigned int) image.getHeight();
+        HeapBlock<uint32> colour (width * height);
         int index = 0;
 
-        for (int y = 0; y < height; ++y)
-            for (int x = 0; x < width; ++x)
+        for (int y = 0; y < (int)  height; ++y)
+            for (int x = 0; x < (int) width; ++x)
                 colour[index++] = image.getPixelAt (x, y).getARGB();
 
         XImage* ximage = XCreateImage (display, CopyFromParent, 24, ZPixmap,
@@ -767,21 +783,21 @@ namespace PixmapHelpers
     {
         ScopedXLock xlock;
 
-        const int width = image.getWidth();
-        const int height = image.getHeight();
-        const int stride = (width + 7) >> 3;
-        HeapBlock <char> mask;
+        const unsigned int width = (unsigned int) image.getWidth();
+        const unsigned int height = (unsigned int) image.getHeight();
+        const unsigned int stride = (width + 7) >> 3;
+        HeapBlock<char> mask;
         mask.calloc (stride * height);
         const bool msbfirst = (BitmapBitOrder (display) == MSBFirst);
 
-        for (int y = 0; y < height; ++y)
+        for (unsigned int y = 0; y < height; ++y)
         {
-            for (int x = 0; x < width; ++x)
+            for (unsigned int x = 0; x < width; ++x)
             {
                 const char bit = (char) (1 << (msbfirst ? (7 - (x & 7)) : (x & 7)));
-                const int offset = y * stride + (x >> 3);
+                const unsigned int offset = y * stride + (x >> 3);
 
-                if (image.getPixelAt (x, y).getAlpha() >= 128)
+                if (image.getPixelAt ((int) x, (int) y).getAlpha() >= 128)
                     mask[offset] |= bit;
             }
         }
@@ -872,17 +888,22 @@ public:
     {
         XPointer peer = nullptr;
 
-        ScopedXLock xlock;
-        if (! XFindContext (display, (XID) windowHandle, windowHandleXContext, &peer))
-            if (peer != nullptr && ! ComponentPeer::isValidPeer (reinterpret_cast <LinuxComponentPeer*> (peer)))
-                peer = nullptr;
+        if (display != nullptr)
+        {
+            ScopedXLock xlock;
 
-        return reinterpret_cast <LinuxComponentPeer*> (peer);
+            if (! XFindContext (display, (XID) windowHandle, windowHandleXContext, &peer))
+                if (peer != nullptr && ! ComponentPeer::isValidPeer (reinterpret_cast<LinuxComponentPeer*> (peer)))
+                    peer = nullptr;
+        }
+
+        return reinterpret_cast<LinuxComponentPeer*> (peer);
     }
 
     void setVisible (bool shouldBeVisible) override
     {
         ScopedXLock xlock;
+
         if (shouldBeVisible)
             XMapWindow (display, windowH);
         else
@@ -892,7 +913,7 @@ public:
     void setTitle (const String& title) override
     {
         XTextProperty nameProperty;
-        char* strings[] = { const_cast <char*> (title.toRawUTF8()) };
+        char* strings[] = { const_cast<char*> (title.toRawUTF8()) };
         ScopedXLock xlock;
 
         if (XStringListToTextProperty (strings, 1, &nameProperty))
@@ -923,7 +944,7 @@ public:
                 clientMsg.format = 32;
                 clientMsg.message_type = Atoms::get().windowState;
                 clientMsg.data.l[0] = 0;  // Remove
-                clientMsg.data.l[1] = fs;
+                clientMsg.data.l[1] = (long) fs;
                 clientMsg.data.l[2] = 0;
                 clientMsg.data.l[3] = 1;  // Normal Source
 
@@ -964,8 +985,8 @@ public:
             XMoveResizeWindow (display, windowH,
                                bounds.getX() - windowBorder.getLeft(),
                                bounds.getY() - windowBorder.getTop(),
-                               bounds.getWidth(),
-                               bounds.getHeight());
+                               (unsigned int) bounds.getWidth(),
+                               (unsigned int) bounds.getHeight());
 
             if (deletionChecker != nullptr)
             {
@@ -1085,7 +1106,7 @@ public:
 
         if (XQueryTree (display, root, &root, &parent, &windowList, &windowListSize) != 0)
         {
-            for (int i = windowListSize; --i >= 0;)
+            for (int i = (int) windowListSize; --i >= 0;)
             {
                 if (LinuxComponentPeer* const peer = LinuxComponentPeer::getPeerFor (windowList[i]))
                 {
@@ -1123,11 +1144,11 @@ public:
 
         ::Window root, child;
         int wx, wy;
-        unsigned int ww, wh, bw, depth;
+        unsigned int ww, wh, bw, bitDepth;
 
         ScopedXLock xlock;
 
-        return XGetGeometry (display, (::Drawable) windowH, &root, &wx, &wy, &ww, &wh, &bw, &depth)
+        return XGetGeometry (display, (::Drawable) windowH, &root, &wx, &wy, &ww, &wh, &bw, &bitDepth)
                 && XTranslateCoordinates (display, windowH, windowH, localPos.getX(), localPos.getY(), &wx, &wy, &child)
                 && child == None;
     }
@@ -1215,7 +1236,7 @@ public:
             && atts.map_state == IsViewable
             && ! isFocused())
         {
-            XSetInputFocus (display, windowH, RevertToParent, getUserTime());
+            XSetInputFocus (display, windowH, RevertToParent, (::Time) getUserTime());
             isActiveApplication = true;
         }
     }
@@ -1235,7 +1256,7 @@ public:
     void setIcon (const Image& newIcon) override
     {
         const int dataSize = newIcon.getWidth() * newIcon.getHeight() + 2;
-        HeapBlock <unsigned long> data (dataSize);
+        HeapBlock<unsigned long> data ((size_t) dataSize);
 
         int index = 0;
         data[index++] = (unsigned long) newIcon.getWidth();
@@ -1351,7 +1372,7 @@ public:
 
         {
             ScopedXLock xlock;
-            updateKeyStates (keyEvent.keycode, true);
+            updateKeyStates ((int) keyEvent.keycode, true);
 
             String oldLocale (::setlocale (LC_ALL, 0));
             ::setlocale (LC_ALL, "");
@@ -1364,7 +1385,7 @@ public:
             keyCode = (int) unicodeChar;
 
             if (keyCode < 0x20)
-                keyCode = XkbKeycodeToKeysym (display, keyEvent.keycode, 0, currentModifiers.isShiftDown() ? 1 : 0);
+                keyCode = (int) XkbKeycodeToKeysym (display, (::KeyCode) keyEvent.keycode, 0, currentModifiers.isShiftDown() ? 1 : 0);
 
             keyDownChange = (sym != NoSymbol) && ! updateKeyModifiersFromSym (sym, true);
         }
@@ -1479,12 +1500,12 @@ public:
     {
         if (! isKeyReleasePartOfAutoRepeat (keyEvent))
         {
-            updateKeyStates (keyEvent.keycode, false);
+            updateKeyStates ((int) keyEvent.keycode, false);
             KeySym sym;
 
             {
                 ScopedXLock xlock;
-                sym = XkbKeycodeToKeysym (display, keyEvent.keycode, 0, 0);
+                sym = XkbKeycodeToKeysym (display, (::KeyCode) keyEvent.keycode, 0, 0);
             }
 
             const ModifierKeys oldMods (currentModifiers);
@@ -1524,7 +1545,7 @@ public:
 
     void handleButtonPressEvent (const XButtonPressedEvent& buttonPressEvent)
     {
-        updateKeyModifiers (buttonPressEvent.state);
+        updateKeyModifiers ((int) buttonPressEvent.state);
 
         switch (pointerMap [buttonPressEvent.button - Button1])
         {
@@ -1541,7 +1562,7 @@ public:
 
     void handleButtonReleaseEvent (const XButtonReleasedEvent& buttonRelEvent)
     {
-        updateKeyModifiers (buttonRelEvent.state);
+        updateKeyModifiers ((int) buttonRelEvent.state);
 
         if (parentWindow != 0)
             updateWindowBounds();
@@ -1564,7 +1585,7 @@ public:
 
     void handleMotionNotifyEvent (const XPointerMovedEvent& movedEvent)
     {
-        updateKeyModifiers (movedEvent.state);
+        updateKeyModifiers ((int) movedEvent.state);
 
         lastMousePos = Point<int> (movedEvent.x_root, movedEvent.y_root);
 
@@ -1583,7 +1604,7 @@ public:
 
         if (! currentModifiers.isAnyMouseButtonDown())
         {
-            updateKeyModifiers (enterEvent.state);
+            updateKeyModifiers ((int) enterEvent.state);
             handleMouseEvent (0, getMousePos (enterEvent), currentModifiers, getEventTime (enterEvent));
         }
     }
@@ -1596,7 +1617,7 @@ public:
         if (((! currentModifiers.isAnyMouseButtonDown()) && leaveEvent.mode == NotifyNormal)
              || leaveEvent.mode == NotifyUngrab)
         {
-            updateKeyModifiers (leaveEvent.state);
+            updateKeyModifiers ((int) leaveEvent.state);
             handleMouseEvent (0, getMousePos (leaveEvent), currentModifiers, getEventTime (leaveEvent));
         }
     }
@@ -1731,7 +1752,7 @@ public:
                          && XGetWindowAttributes (display, clientMsg.window, &atts))
                     {
                         if (atts.map_state == IsViewable)
-                            XSetInputFocus (display, clientMsg.window, RevertToParent, clientMsg.data.l[1]);
+                            XSetInputFocus (display, clientMsg.window, RevertToParent, (::Time) clientMsg.data.l[1]);
                     }
                 }
             }
@@ -1890,7 +1911,7 @@ private:
                    #endif
                                                      (totalArea.getWidth()  + 31) & ~31,
                                                      (totalArea.getHeight() + 31) & ~31,
-                                                     false, peer.depth, peer.visual));
+                                                     false, (unsigned int) peer.depth, peer.visual));
                 }
 
                 startTimer (repaintTimerPeriod);
@@ -1910,15 +1931,18 @@ private:
 
                 for (const Rectangle<int>* i = originalRepaintRegion.begin(), * const e = originalRepaintRegion.end(); i != e; ++i)
                 {
+                    XBitmapImage* xbitmap = static_cast<XBitmapImage*> (image.getPixelData());
                    #if JUCE_USE_XSHM
-                    if (XSHMHelpers::isShmAvailable())
+                    if (xbitmap->isUsingXShm())
                         ++shmPaintsPending;
                    #endif
 
-                    static_cast<XBitmapImage*> (image.getPixelData())
-                        ->blitToWindow (peer.windowH,
-                                        i->getX(), i->getY(), i->getWidth(), i->getHeight(),
-                                        i->getX() - totalArea.getX(), i->getY() - totalArea.getY());
+
+                   xbitmap->blitToWindow (peer.windowH,
+                                          i->getX(), i->getY(),
+                                          (unsigned int) i->getWidth(),
+                                          (unsigned int) i->getHeight(),
+                                          i->getX() - totalArea.getX(), i->getY() - totalArea.getY());
                 }
             }
 
@@ -1945,7 +1969,7 @@ private:
         JUCE_DECLARE_NON_COPYABLE (LinuxRepaintManager)
     };
 
-    ScopedPointer <LinuxRepaintManager> repainter;
+    ScopedPointer<LinuxRepaintManager> repainter;
 
     friend class LinuxRepaintManager;
     Window windowH, parentWindow;
@@ -2199,6 +2223,8 @@ private:
         const int screen = DefaultScreen (display);
         Window root = RootWindow (display, screen);
 
+        parentWindow = parentToAddTo;
+
         // Try to obtain a 32-bit visual or fallback to 24 or 16
         visual = Visuals::findVisualFormat ((styleFlags & windowIsSemiTransparent) ? 32 : 24, depth);
 
@@ -2263,7 +2289,7 @@ private:
         const Atoms& atoms = Atoms::get();
 
         // Associate the PID, allowing to be shut down when something goes wrong
-        unsigned long pid = getpid();
+        unsigned long pid = (unsigned long) getpid();
         xchangeProperty (windowH, atoms.pid, XA_CARDINAL, 32, &pid, 1);
 
         // Set window manager protocols
@@ -2314,7 +2340,7 @@ private:
     static int64 getEventTime (::Time t)
     {
         static int64 eventTimeOffset = 0x12345678;
-        const int64 thisMessageTime = t;
+        const int64 thisMessageTime = (int64) t;
 
         if (eventTimeOffset == 0x12345678)
             eventTimeOffset = Time::currentTimeMillis() - thisMessageTime;
@@ -2361,15 +2387,15 @@ private:
         {
             Window root, child;
             int wx = 0, wy = 0;
-            unsigned int ww = 0, wh = 0, bw, depth;
+            unsigned int ww = 0, wh = 0, bw, bitDepth;
 
             ScopedXLock xlock;
 
-            if (XGetGeometry (display, (::Drawable) windowH, &root, &wx, &wy, &ww, &wh, &bw, &depth))
+            if (XGetGeometry (display, (::Drawable) windowH, &root, &wx, &wy, &ww, &wh, &bw, &bitDepth))
                 if (! XTranslateCoordinates (display, windowH, root, 0, 0, &wx, &wy, &child))
                     wx = wy = 0;
 
-            bounds.setBounds (wx, wy, ww, wh);
+            bounds.setBounds (wx, wy, (int) ww, (int) wh);
         }
     }
 
@@ -2429,7 +2455,7 @@ private:
         msg.display = display;
         msg.window = dragAndDropSourceWindow;
         msg.format = 32;
-        msg.data.l[0] = windowH;
+        msg.data.l[0] = (long) windowH;
 
         ScopedXLock xlock;
         XSendEvent (display, dragAndDropSourceWindow, False, 0, (XEvent*) &msg);
@@ -2441,7 +2467,7 @@ private:
         msg.display   = display;
         msg.window    = targetWindow;
         msg.format    = 32;
-        msg.data.l[0] = windowH;
+        msg.data.l[0] = (long) windowH;
 
         ScopedXLock xlock;
         return XSendEvent (display, targetWindow, False, 0, (XEvent*) &msg) != 0;
@@ -2469,9 +2495,9 @@ private:
         const int numMimeTypes = dragState.getNumMimeTypes();
 
         msg.data.l[1] = (dragState.xdndVersion << 24) | (numMimeTypes > 3);
-        msg.data.l[2] = numMimeTypes > 0 ? mimeTypes[0] : 0;
-        msg.data.l[3] = numMimeTypes > 1 ? mimeTypes[1] : 0;
-        msg.data.l[4] = numMimeTypes > 2 ? mimeTypes[2] : 0;
+        msg.data.l[2] = numMimeTypes > 0 ? (long) mimeTypes[0] : 0;
+        msg.data.l[3] = numMimeTypes > 1 ? (long) mimeTypes[1] : 0;
+        msg.data.l[4] = numMimeTypes > 2 ? (long) mimeTypes[2] : 0;
 
         sendExternalDragAndDropMessage (msg, targetWindow);
     }
@@ -2491,7 +2517,7 @@ private:
         msg.data.l[1] = 0;
         msg.data.l[2] = (mousePos.x << 16) | mousePos.y;
         msg.data.l[3] = CurrentTime;
-        msg.data.l[4] = Atoms::get().XdndActionCopy; // this is all JUCE currently supports
+        msg.data.l[4] = (long) Atoms::get().XdndActionCopy; // this is all JUCE currently supports
 
         dragState.expectingStatus = sendExternalDragAndDropMessage (msg, targetWindow);
     }
@@ -2503,7 +2529,7 @@ private:
 
         msg.message_type = Atoms::get().XdndStatus;
         msg.data.l[1] = (acceptDrop ? 1 : 0) | 2; // 2 indicates that we want to receive position messages
-        msg.data.l[4] = dropAction;
+        msg.data.l[4] = (long) dropAction;
 
         sendDragAndDropMessage (msg);
     }
@@ -2552,7 +2578,7 @@ private:
                              evt.xselectionrequest.property,
                              targetType, 8,
                              dragState.textOrFiles.toRawUTF8(),
-                             dragState.textOrFiles.getNumBytesAsUTF8());
+                             (int) dragState.textOrFiles.getNumBytesAsUTF8());
         }
 
         XSendEvent (display, evt.xselectionrequest.requestor, True, 0, &s);
@@ -2571,10 +2597,10 @@ private:
                       || (Atom) clientMsg.data.l[4] == Atoms::get().XdndActionPrivate))
             {
                 if ((clientMsg.data.l[1] & 2) == 0) // target requests silent rectangle
-                    dragState.silentRect.setBounds (clientMsg.data.l[2] >> 16,
-                                                    clientMsg.data.l[2] & 0xffff,
-                                                    clientMsg.data.l[3] >> 16,
-                                                    clientMsg.data.l[3] & 0xffff);
+                    dragState.silentRect.setBounds ((int) clientMsg.data.l[2] >> 16,
+                                                    (int) clientMsg.data.l[2] & 0xffff,
+                                                    (int) clientMsg.data.l[3] >> 16,
+                                                    (int) clientMsg.data.l[3] & 0xffff);
 
                 dragState.canDrop = true;
             }
@@ -2641,7 +2667,7 @@ private:
         if (dragAndDropSourceWindow == 0)
             return;
 
-        dragAndDropSourceWindow = clientMsg.data.l[0];
+        dragAndDropSourceWindow = (::Window) clientMsg.data.l[0];
 
         Point<int> dropPos ((int) clientMsg.data.l[2] >> 16,
                             (int) clientMsg.data.l[2] & 0xffff);
@@ -2704,7 +2730,7 @@ private:
         srcMimeTypeAtomList.clear();
 
         dragAndDropCurrentMimeType = 0;
-        const unsigned long dndCurrentVersion = static_cast <unsigned long> (clientMsg.data.l[1] & 0xff000000) >> 24;
+        const unsigned long dndCurrentVersion = static_cast<unsigned long> (clientMsg.data.l[1] & 0xff000000) >> 24;
 
         if (dndCurrentVersion < 3 || dndCurrentVersion > Atoms::DndVersion)
         {
@@ -2712,7 +2738,7 @@ private:
             return;
         }
 
-        dragAndDropSourceWindow = clientMsg.data.l[0];
+        dragAndDropSourceWindow = (::Window) clientMsg.data.l[0];
 
         if ((clientMsg.data.l[1] & 1) != 0)
         {
@@ -2736,7 +2762,7 @@ private:
         {
             for (int i = 2; i < 5; ++i)
                 if (clientMsg.data.l[i] != None)
-                    srcMimeTypeAtomList.add (clientMsg.data.l[i]);
+                    srcMimeTypeAtomList.add ((unsigned long) clientMsg.data.l[i]);
 
             if (srcMimeTypeAtomList.size() == 0)
             {
@@ -2773,7 +2799,7 @@ private:
                     if (! prop.success)
                         break;
 
-                    dropData.append (prop.data, prop.numItems * prop.actualFormat / 8);
+                    dropData.append (prop.data, prop.numItems * (size_t) prop.actualFormat / 8);
 
                     if (prop.bytesLeft <= 0)
                         break;
@@ -2813,7 +2839,7 @@ private:
                                dragAndDropCurrentMimeType,
                                Atoms::getCreating ("JXSelectionWindowProperty"),
                                windowH,
-                               clientMsg.data.l[2]);
+                               (::Time) clientMsg.data.l[2]);
         }
     }
 
@@ -2901,7 +2927,7 @@ private:
     Window dragAndDropSourceWindow;
     bool finishAfterDropDataReceived;
 
-    Array <Atom> srcMimeTypeAtomList;
+    Array<Atom> srcMimeTypeAtomList;
 
     int pointerMap[5];
 
@@ -2961,31 +2987,35 @@ void ModifierKeys::updateCurrentModifiers() noexcept
 
 ModifierKeys ModifierKeys::getCurrentModifiersRealtime() noexcept
 {
-    Window root, child;
-    int x, y, winx, winy;
-    unsigned int mask;
-    int mouseMods = 0;
-
-    ScopedXLock xlock;
-
-    if (XQueryPointer (display, RootWindow (display, DefaultScreen (display)),
-                       &root, &child, &x, &y, &winx, &winy, &mask) != False)
+    if (display != nullptr)
     {
-        if ((mask & Button1Mask) != 0)  mouseMods |= ModifierKeys::leftButtonModifier;
-        if ((mask & Button2Mask) != 0)  mouseMods |= ModifierKeys::middleButtonModifier;
-        if ((mask & Button3Mask) != 0)  mouseMods |= ModifierKeys::rightButtonModifier;
+        Window root, child;
+        int x, y, winx, winy;
+        unsigned int mask;
+        int mouseMods = 0;
+
+        ScopedXLock xlock;
+
+        if (XQueryPointer (display, RootWindow (display, DefaultScreen (display)),
+                           &root, &child, &x, &y, &winx, &winy, &mask) != False)
+        {
+            if ((mask & Button1Mask) != 0)  mouseMods |= ModifierKeys::leftButtonModifier;
+            if ((mask & Button2Mask) != 0)  mouseMods |= ModifierKeys::middleButtonModifier;
+            if ((mask & Button3Mask) != 0)  mouseMods |= ModifierKeys::rightButtonModifier;
+        }
+
+        LinuxComponentPeer::currentModifiers = LinuxComponentPeer::currentModifiers.withoutMouseButtons().withFlags (mouseMods);
     }
 
-    LinuxComponentPeer::currentModifiers = LinuxComponentPeer::currentModifiers.withoutMouseButtons().withFlags (mouseMods);
     return LinuxComponentPeer::currentModifiers;
 }
 
 
 //==============================================================================
-void Desktop::setKioskComponent (Component* kioskModeComponent, bool enableOrDisable, bool /* allowMenusAndBars */)
+void Desktop::setKioskComponent (Component* comp, bool enableOrDisable, bool /* allowMenusAndBars */)
 {
     if (enableOrDisable)
-        kioskModeComponent->setBounds (getDisplays().getMainDisplay().totalArea);
+        comp->setBounds (getDisplays().getMainDisplay().totalArea);
 }
 
 //==============================================================================
@@ -3085,8 +3115,8 @@ void Desktop::Displays::findDisplays (float masterScale)
                     const long* const position = (const long*) prop.data;
 
                     Display d;
-                    d.userArea = d.totalArea = Rectangle<int> (position[0], position[1],
-                                                               position[2], position[3]) / masterScale;
+                    d.userArea = d.totalArea = Rectangle<int> ((int) position[0], (int) position[1],
+                                                               (int) position[2], (int) position[3]) / masterScale;
                     d.isMain = (displays.size() == 0);
                     d.scale = masterScale;
                     d.dpi = getDisplayDPI (i);
@@ -3139,6 +3169,9 @@ bool Desktop::canUseSemiTransparentWindows() noexcept
 
 Point<float> MouseInputSource::getCurrentRawMousePosition()
 {
+    if (display == nullptr)
+        return Point<float>();
+
     Window root, child;
     int x, y, winx, winy;
     unsigned int mask;
@@ -3159,13 +3192,44 @@ Point<float> MouseInputSource::getCurrentRawMousePosition()
 
 void MouseInputSource::setRawMousePosition (Point<float> newPosition)
 {
-    ScopedXLock xlock;
-    Window root = RootWindow (display, DefaultScreen (display));
-    XWarpPointer (display, None, root, 0, 0, 0, 0, roundToInt (newPosition.getX()), roundToInt (newPosition.getY()));
+    if (display != nullptr)
+    {
+        ScopedXLock xlock;
+        Window root = RootWindow (display, DefaultScreen (display));
+        XWarpPointer (display, None, root, 0, 0, 0, 0, roundToInt (newPosition.getX()), roundToInt (newPosition.getY()));
+    }
 }
 
 double Desktop::getDefaultMasterScale()
 {
+    // Ubuntu and derived distributions now save a per-display scale factor as a configuration
+    // variable. This can be changed in the Monitor system settings panel.
+    ChildProcess dconf;
+
+    if (dconf.start ("dconf read /com/ubuntu/user-interface/scale-factor", ChildProcess::wantStdOut))
+    {
+        if (dconf.waitForProcessToFinish (200))
+        {
+            String jsonOutput = dconf.readAllProcessOutput().replaceCharacter ('\'', '"');
+
+            if (dconf.getExitCode() == 0 && jsonOutput.isNotEmpty())
+            {
+                var jsonVar = JSON::parse (jsonOutput);
+
+                if (DynamicObject* object = jsonVar.getDynamicObject())
+                {
+                    NamedValueSet& scaleFactors = object->getProperties();
+
+                    double maxScaleFactor = 1.0;
+                    for (int i = 0; i < scaleFactors.size(); ++i)
+                        maxScaleFactor = jmax (maxScaleFactor, (double) (scaleFactors.getValueAt (i)) / 8.0);
+
+                    return maxScaleFactor;
+                }
+            }
+        }
+    }
+
     return 1.0;
 }
 
@@ -3183,16 +3247,19 @@ void Desktop::setScreenSaverEnabled (const bool isEnabled)
     {
         screenSaverAllowed = isEnabled;
 
-        typedef void (*tXScreenSaverSuspend) (Display*, Bool);
-        static tXScreenSaverSuspend xScreenSaverSuspend = nullptr;
+        if (display != nullptr)
+        {
+            typedef void (*tXScreenSaverSuspend) (Display*, Bool);
+            static tXScreenSaverSuspend xScreenSaverSuspend = nullptr;
 
-        if (xScreenSaverSuspend == nullptr)
-            if (void* h = dlopen ("libXss.so", RTLD_GLOBAL | RTLD_NOW))
-                xScreenSaverSuspend = (tXScreenSaverSuspend) dlsym (h, "XScreenSaverSuspend");
+            if (xScreenSaverSuspend == nullptr)
+                if (void* h = dlopen ("libXss.so", RTLD_GLOBAL | RTLD_NOW))
+                    xScreenSaverSuspend = (tXScreenSaverSuspend) dlsym (h, "XScreenSaverSuspend");
 
-        ScopedXLock xlock;
-        if (xScreenSaverSuspend != nullptr)
-            xScreenSaverSuspend (display, ! isEnabled);
+            ScopedXLock xlock;
+            if (xScreenSaverSuspend != nullptr)
+                xScreenSaverSuspend (display, ! isEnabled);
+        }
     }
 }
 
@@ -3204,9 +3271,12 @@ bool Desktop::isScreenSaverEnabled()
 //==============================================================================
 void* CustomMouseCursorInfo::create() const
 {
+    if (display == nullptr)
+        return nullptr;
+
     ScopedXLock xlock;
-    const unsigned int imageW = image.getWidth();
-    const unsigned int imageH = image.getHeight();
+    const unsigned int imageW = (unsigned int) image.getWidth();
+    const unsigned int imageH = (unsigned int) image.getHeight();
     int hotspotX = hotspot.x;
     int hotspotY = hotspot.y;
 
@@ -3243,10 +3313,10 @@ void* CustomMouseCursorInfo::create() const
 
         if (xcursorSupportsARGB != nullptr)
         {
-            if (XcursorImage* xcImage = xcursorImageCreate (imageW, imageH))
+            if (XcursorImage* xcImage = xcursorImageCreate ((int) imageW, (int) imageH))
             {
-                xcImage->xhot = hotspotX;
-                xcImage->yhot = hotspotY;
+                xcImage->xhot = (XcursorDim) hotspotX;
+                xcImage->yhot = (XcursorDim) hotspotY;
                 XcursorPixel* dest = xcImage->pixels;
 
                 for (int y = 0; y < (int) imageH; ++y)
@@ -3268,17 +3338,17 @@ void* CustomMouseCursorInfo::create() const
     if (! XQueryBestCursor (display, root, imageW, imageH, &cursorW, &cursorH))
         return nullptr;
 
-    Image im (Image::ARGB, cursorW, cursorH, true);
+    Image im (Image::ARGB, (int) cursorW, (int) cursorH, true);
 
     {
         Graphics g (im);
 
         if (imageW > cursorW || imageH > cursorH)
         {
-            hotspotX = (hotspotX * cursorW) / imageW;
-            hotspotY = (hotspotY * cursorH) / imageH;
+            hotspotX = (hotspotX * (int) cursorW) / (int) imageW;
+            hotspotY = (hotspotY * (int) cursorH) / (int) imageH;
 
-            g.drawImageWithin (image, 0, 0, imageW, imageH,
+            g.drawImageWithin (image, 0, 0, (int) imageW, (int) imageH,
                                RectanglePlacement::xLeft | RectanglePlacement::yTop | RectanglePlacement::onlyReduceInSize,
                                false);
         }
@@ -3288,19 +3358,19 @@ void* CustomMouseCursorInfo::create() const
         }
     }
 
-    const int stride = (cursorW + 7) >> 3;
-    HeapBlock <char> maskPlane, sourcePlane;
+    const unsigned int stride = (cursorW + 7) >> 3;
+    HeapBlock<char> maskPlane, sourcePlane;
     maskPlane.calloc (stride * cursorH);
     sourcePlane.calloc (stride * cursorH);
 
     const bool msbfirst = (BitmapBitOrder (display) == MSBFirst);
 
-    for (int y = cursorH; --y >= 0;)
+    for (int y = (int) cursorH; --y >= 0;)
     {
-        for (int x = cursorW; --x >= 0;)
+        for (int x = (int) cursorW; --x >= 0;)
         {
             const char mask = (char) (1 << (msbfirst ? (7 - (x & 7)) : (x & 7)));
-            const int offset = y * stride + (x >> 3);
+            const unsigned int offset = (unsigned int) y * stride + ((unsigned int) x >> 3);
 
             const Colour c (im.getPixelAt (x, y));
 
@@ -3316,7 +3386,8 @@ void* CustomMouseCursorInfo::create() const
     black.red = black.green = black.blue = 0;
     white.red = white.green = white.blue = 0xffff;
 
-    void* result = (void*) XCreatePixmapCursor (display, sourcePixmap, maskPixmap, &white, &black, hotspotX, hotspotY);
+    void* result = (void*) XCreatePixmapCursor (display, sourcePixmap, maskPixmap, &white, &black,
+                                                (unsigned int) hotspotX, (unsigned int) hotspotY);
 
     XFreePixmap (display, sourcePixmap);
     XFreePixmap (display, maskPixmap);
@@ -3326,13 +3397,18 @@ void* CustomMouseCursorInfo::create() const
 
 void MouseCursor::deleteMouseCursor (void* const cursorHandle, const bool)
 {
-    ScopedXLock xlock;
-    if (cursorHandle != nullptr)
+    if (cursorHandle != nullptr && display != nullptr)
+    {
+        ScopedXLock xlock;
         XFreeCursor (display, (Cursor) cursorHandle);
+    }
 }
 
 void* MouseCursor::createStandardMouseCursor (MouseCursor::StandardCursorType type)
 {
+    if (display == nullptr)
+        return None;
+
     unsigned int shape;
 
     switch (type)
@@ -3522,7 +3598,7 @@ const int KeyPress::numberPadSeparator      = (XK_KP_Separator & 0xff)| Keys::ex
 const int KeyPress::numberPadDecimalPoint   = (XK_KP_Decimal & 0xff)| Keys::extendedKeyModifier;
 const int KeyPress::numberPadEquals         = (XK_KP_Equal & 0xff)| Keys::extendedKeyModifier;
 const int KeyPress::numberPadDelete         = (XK_KP_Delete & 0xff)| Keys::extendedKeyModifier;
-const int KeyPress::playKey                 = (0xffeeff00) | Keys::extendedKeyModifier;
-const int KeyPress::stopKey                 = (0xffeeff01) | Keys::extendedKeyModifier;
-const int KeyPress::fastForwardKey          = (0xffeeff02) | Keys::extendedKeyModifier;
-const int KeyPress::rewindKey               = (0xffeeff03) | Keys::extendedKeyModifier;
+const int KeyPress::playKey                 = ((int) 0xffeeff00) | Keys::extendedKeyModifier;
+const int KeyPress::stopKey                 = ((int) 0xffeeff01) | Keys::extendedKeyModifier;
+const int KeyPress::fastForwardKey          = ((int) 0xffeeff02) | Keys::extendedKeyModifier;
+const int KeyPress::rewindKey               = ((int) 0xffeeff03) | Keys::extendedKeyModifier;

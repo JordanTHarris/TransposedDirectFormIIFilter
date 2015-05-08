@@ -17,20 +17,20 @@ TransDirectFormIIFilter::TransDirectFormIIFilter()
 	type = bq_type_lowpass;			// lowpass filter by default
 	a0 = 1.0;
 	a1 = a2 = b1 = b2 = 0.0;
-	Fc = pitchToFreq(5000.0) / sampleRate;
+	cutoff = pitchToFreq(5000.0) / sampleRate;
 	Q = 1.0 / (2.0 * (1.0 - 0.7));	// default resonance: 0.7
 	
 	peakGain = 0.0;
-	z1_L = z2_L = 0.0;
-	z1_R = z2_R = 0.0;
+	z1_A[0] = z2_A[0] = 0.0;
+	z1_A[1] = z2_A[1] = 0.0;
 }
 
-TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double Fc, double res,
+TransDirectFormIIFilter::TransDirectFormIIFilter(int type, double cutoff, double res,
 												 double peakGaindB)
 {
-	setFilter(type, Fc, res, peakGaindB);
-	z1_L = z2_L = 0.0;
-	z1_R = z2_R = 0.0;
+	setFilter(type, cutoff, res, peakGaindB);
+	z1_A[0] = z2_A[0] = 0.0;
+	z1_A[1] = z2_A[1] = 0.0;
 }
 
 TransDirectFormIIFilter::~TransDirectFormIIFilter()
@@ -48,9 +48,9 @@ void TransDirectFormIIFilter::setResonance(double resonance)
 	calcFilter();
 }
 
-void TransDirectFormIIFilter::setFc(double Fc)
+void TransDirectFormIIFilter::setCutoff(double cutoff)
 {
-	this->Fc = pitchToFreq(Fc) / sampleRate;
+	this->cutoff = pitchToFreq(cutoff) / sampleRate;
 	calcFilter();
 }
 
@@ -60,12 +60,12 @@ void TransDirectFormIIFilter::setFc(double Fc)
 	calcFilter();
 }
 
-void TransDirectFormIIFilter::setFilter(int type, double Fc, double resonance,
+void TransDirectFormIIFilter::setFilter(int type, double cutoff, double resonance,
 										double peakGaindB)
 {
 	this->type = type;
 	this->Q = 1.0 / (2.0 * (1.0 - resonance));
-	this->Fc = pitchToFreq(Fc);
+	this->cutoff = pitchToFreq(cutoff);
 	setPeakGain(peakGaindB);
 }
 
@@ -81,7 +81,7 @@ void TransDirectFormIIFilter::calcFilter(void)
 	
 	double norm;
 	double V = pow(10, fabs(peakGain) / 20.0);
-	double K = tan(M_PI * Fc);
+	double K = tan(M_PI * cutoff);
 	switch (this->type) {
 	case bq_type_lowpass:
 		norm = 1 / (1 + K / Q + K * K);
